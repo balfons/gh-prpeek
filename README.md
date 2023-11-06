@@ -1,4 +1,6 @@
-# prpeek
+# prpeek 👀
+Show status of relevant pull requests live
+
 
 To install dependencies:
 
@@ -12,9 +14,12 @@ To run:
 bun start --repo https://github.com/<username>/<repository>
 ```
 
-To buld:
+To compile:
 ```bash
 bun compile
 ```
 
-This project was created using `bun init` in bun v1.0.0. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+Run compiled executable:
+```bash
+./prpeek --repo https://github.com/<username>/<repository>
+```
