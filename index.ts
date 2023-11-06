@@ -19,16 +19,23 @@ const { repo, interval } = program.opts();
 const intervalAsMillis = Number(interval * 1000);
 
 if (isNaN(intervalAsMillis)) {
-  program.error('Interval must be a number');
+  program.error("Interval must be a number");
 }
 
 const runGhCommand = (repoUrl: string) => {
   const env = { ...process.env, CLICOLOR_FORCE: "1", GH_PAGER: "" };
   const ghPrCommand = ["gh", "pr", "status", "--repo", repoUrl];
-
-  return Bun.spawn(ghPrCommand, {
-    env,
-  });
+  try {
+    return Bun.spawnSync(ghPrCommand, {
+      env,
+    });
+  } catch (error: any) {
+    if (error.code === 'ERR_INVALID_ARG_TYPE') {
+      throw 'GitHub CLI needs to be installed in order to run prpeek: https://github.com/cli/cli#installation';
+    } else {
+      throw error;
+    }
+  }
 };
 
 const getPrLink = (prNumber: string) => {
@@ -82,11 +89,11 @@ while (true) {
   const date = chalk.dim(`Last updated: ${getDate()}`);
 
   console.clear();
-
+  
   const { body, title } = formatOutput(ghCommandOuput);
   const output = `${body}\n${date}`;
-
-  console.log(boxen(output, { padding: 1, dimBorder: true, title: title }));
+  
+  console.log(boxen(output, { padding: 1, borderColor: 'magenta', title: title }));
 
   await Bun.sleep(intervalAsMillis);
 }
