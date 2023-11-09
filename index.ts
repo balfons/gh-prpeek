@@ -2,6 +2,7 @@ import terminalLink from "terminal-link";
 import chalk from "chalk";
 import boxen from "boxen";
 import { Command } from "commander";
+import beeper from "beeper";
 const program = new Command();
 
 program
@@ -10,11 +11,12 @@ program
     "-r, --repo <repo>",
     "Repository url to target: [HOST/]OWNER/REPO"
   )
-  .option("-i, --interval <interval>", "Update interval in seconds", "5");
+  .option("-i, --interval <interval>", "Update interval in seconds", "5")
+  .option("-s, --sound", "Sound when a new PR is added", false);
 
 program.parse();
 
-const { repo, interval } = program.opts();
+const { repo, interval, sound } = program.opts();
 
 const intervalAsMillis = Number(interval * 1000);
 
@@ -30,8 +32,8 @@ const runGhCommand = (repoUrl: string) => {
       env,
     });
   } catch (error: any) {
-    if (error.code === 'ERR_INVALID_ARG_TYPE') {
-      throw 'GitHub CLI needs to be installed in order to run prpeek: https://github.com/cli/cli#installation';
+    if (error.code === "ERR_INVALID_ARG_TYPE") {
+      throw "GitHub CLI needs to be installed in order to run prpeek: https://github.com/cli/cli#installation";
     } else {
       throw error;
     }
@@ -43,11 +45,14 @@ const getPrLink = (prNumber: string) => {
 };
 
 const formatOutput = (text: string) => {
+  const prNumberRegexp = new RegExp(/^(.*#(\d+).*)$/gm);
+  const prNumbers: string[] = [];
+
   const formattedWithLinks = text.replace(
-    /^(.*#(\d+).*)$/gm,
+    prNumberRegexp,
     (match, line, prNumber) => {
-      const link = terminalLink(line.trimStart(), getPrLink(prNumber));
-      return `  ${link}`;
+      prNumbers.push(prNumber);
+      return `  ${terminalLink(line.trimStart(), getPrLink(prNumber))}`;
     }
   );
 
@@ -57,7 +62,7 @@ const formatOutput = (text: string) => {
   lines.splice(0, 3);
   const body = lines.join("\n");
 
-  return { title, body };
+  return { title, body, prNumbers };
 };
 
 const getDate = () => {
@@ -83,17 +88,31 @@ const getDate = () => {
   return `${formattedDate} ${formattedTime}`;
 };
 
+let previousPrNumbers: string[] = [];
+
 while (true) {
   const ghCommand = runGhCommand(repo);
   const ghCommandOuput = await new Response(ghCommand.stdout).text();
   const date = chalk.dim(`Last updated: ${getDate()}`);
 
   console.clear();
-  
-  const { body, title } = formatOutput(ghCommandOuput);
+
+  const { body, title, prNumbers } = formatOutput(ghCommandOuput);
   const output = `${body}\n${date}`;
-  
-  console.log(boxen(output, { padding: 1, borderColor: 'magenta', title: title }));
+
+  const hasNewPr = prNumbers.some(
+    (prNumber) => !previousPrNumbers.includes(prNumber)
+  );
+
+  if (sound && hasNewPr) {
+    await beeper("**");
+  }
+
+  previousPrNumbers = prNumbers;
+
+  console.log(
+    boxen(output, { padding: 1, borderColor: "magenta", title: title })
+  );
 
   await Bun.sleep(intervalAsMillis);
 }
