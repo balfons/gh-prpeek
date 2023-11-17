@@ -17,6 +17,7 @@
     "boxen": "^7.1.1",
     "chalk": "^5.3.0",
     "commander": "^11.1.0",
+    "ora": "^7.0.1",
     "terminal-link": "^3.0.0"
   }
 }

@@ -11,7 +11,7 @@ bun install
 To run:
 
 ```bash
-bun start --repo https://github.com/<username>/<repository>
+bun start --repo <owner>/<repository>
 ```
 
 To compile:
@@ -21,5 +21,5 @@ bun compile
 
 Run compiled executable:
 ```bash
-./prpeek --repo https://github.com/<username>/<repository>
+./prpeek --repo <owner>/<repository> --sound --interval 15 --labels bug,feature
 ```
