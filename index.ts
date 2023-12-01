@@ -174,7 +174,7 @@ const formatPrText = (pullRequest: PullRequest) => {
   const title = terminalLink(pullRequest.title, pullRequest.url, {
     fallback: false,
   });
-  const author = chalk.blue(`[${pullRequest.author.name}]`);
+  const author = chalk.blue(`[${pullRequest.author.name || pullRequest.author.login}]`);
   const statusCheck = getStatusCheck(pullRequest);
   const reviewDecision = getReviewDecisionText(pullRequest.reviewDecision);
   const failedChecksText = getFailedChecksText(pullRequest.statusCheckRollup);
