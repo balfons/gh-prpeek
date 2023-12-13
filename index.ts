@@ -180,7 +180,7 @@ const formatPrText = (pullRequest: PullRequest) => {
   const failedChecksText = getFailedChecksText(pullRequest.statusCheckRollup);
   const additionsAndDeletions = getAdditionsDeletionsText(pullRequest);
 
-  return `${prNumber} ${title} ${additionsAndDeletions} ${author}\n    ${statusCheck} - ${reviewDecision}${failedChecksText}`;
+  return `${prNumber} ${title} ${additionsAndDeletions} ${author}\n    ${statusCheck} ${statusCheck && reviewDecision && '-'} ${reviewDecision}${failedChecksText}`;
 };
 
 let previousPrNumbers: number[] = [];
