@@ -23,16 +23,19 @@ export interface Label {
   color: string;
 }
 
-export interface PullRequest {
-  number: number;
+export interface BasePullRequest {
+  author: Author;
   title: string;
+  number: number;
   url: string;
+  isDraft: boolean;
+  labels: Label[];
+}
+
+export interface PullRequest extends BasePullRequest {
   headRefName: string;
   statusCheckRollup: StatusCheckRollup[];
-  isDraft: boolean;
   reviewDecision: "APPROVED" | "REVIEW_REQUIRED";
-  labels: Label[];
-  author: Author;
   additions: number;
   deletions: number;
 }
