@@ -7,6 +7,7 @@
     "compile": "bun build ./index.ts --compile --outfile prpeek"
   },
   "devDependencies": {
+    "@types/node-cleanup": "^2.1.5",
     "bun-types": "latest"
   },
   "peerDependencies": {
@@ -17,7 +18,8 @@
     "boxen": "^7.1.1",
     "chalk": "^5.3.0",
     "commander": "^11.1.0",
-    "ora": "^7.0.1",
+    "node-cleanup": "^2.1.2",
+    "ora": "^8.0.1",
     "terminal-link": "^3.0.0"
   }
 }
