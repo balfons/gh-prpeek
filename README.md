@@ -1,13 +1,19 @@
 # prpeek 👀
 Show status of relevant pull requests live
 
-## Usage 
 
-Download executable from latest release [here](https://github.com/balfons/prpeek/releases).
+## Installation
+```bash
+brew tap balfons/prpeek && brew install prpeek
+```
+
+Or download executable from latest release [here](https://github.com/balfons/prpeek/releases).
+
+## Usage 
 
 **Example**
 ```bash
-./prpeek --repo <owner>/<repository> --sound --interval 15 --labels bug,feature --involved
+prpeek --repo <owner>/<repository> --sound --interval 15 --labels bug,feature --involved
 ```
 
 **Options**
