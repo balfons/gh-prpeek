@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "start": "bun run index.ts",
-    "compile": "bun build ./index.ts --compile --outfile prpeek"
+    "compile": "bun build ./index.ts --compile --outfile prpeek",
+    "release": "bun compile && tar -czf prpeek.tar.gz prpeek && shasum -a 256 prpeek.tar.gz"
   },
   "devDependencies": {
     "@types/node-cleanup": "^2.1.5",
