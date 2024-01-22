@@ -1,6 +1,7 @@
 # prpeek 👀
 Show status of relevant pull requests live
 
+![Example screenshot](example.png)
 
 ## Installation
 ```bash
