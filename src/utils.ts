@@ -12,5 +12,5 @@ export const disableAlternateBuffer = () => {
 };
 
 export const commaSeparatedList = (value: string): string[] => {
-  return value.toLowerCase().split(",");
+  return value.split(",");
 };

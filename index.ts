@@ -4,28 +4,32 @@ import { Command } from "commander";
 import beeper from "beeper";
 import ora from "ora";
 import nodeCleanup from "node-cleanup";
-import { PullRequestStatusResponse, BasePullRequest } from "./types";
 import {
   formattedDateText,
   formattedTextsCreatedByYou,
   formattedTextsInvolvingYou,
   formattedTextsRequestingReview,
-} from "./textFormatter";
-import { fetchInvolvedPrs, fetchPrStatus } from "./commands";
+} from "./src/textFormatter";
+import { fetchInvolvedPrs, fetchPrStatus } from "./src/commands";
 import {
   clearScreen,
   commaSeparatedList,
   disableAlternateBuffer,
   enableAlternateBuffer,
-} from "./utils";
+} from "./src/utils";
 
 // Program setup
 const program = new Command();
 
 program
+  .version('2.0.0')
   .description(`Show status of relevant pull requests live`)
-  .requiredOption("-r, --repo <repo>", "Repository to target: OWNER/REPO")
-  .option("-i, --interval <interval>", "Update interval in seconds", "10")
+  .requiredOption(
+    "-r, --repos <repos>",
+    "Repositories to target: OWNER/REPO",
+    commaSeparatedList
+  )
+  .option("-i, --interval <interval>", "Update interval in seconds", "15")
   .option("-s, --sound", "Sound when a new PR is added", false)
   .option("--involved", "Show additional PRs where you are involved", false)
   .option(
@@ -36,9 +40,17 @@ program
 
 program.parse();
 
-const { repo, interval, sound, labels, involved } = program.opts();
+const { repos, interval, sound, labels, involved } = program.opts<{
+  repos: string[];
+  interval: number;
+  sound: boolean;
+  labels: string[];
+  involved: boolean;
+}>();
 
 const intervalAsMillis = Number(interval * 1000);
+
+const repoNames = repos.map((repo) => repo.split("/").pop());
 
 if (isNaN(intervalAsMillis)) {
   program.error("Interval must be a number");
@@ -50,54 +62,58 @@ const spinner = ora({
   color: "magenta",
 });
 
-let previousPrNumbers: number[] = [];
+type PreviousPr = { number: number; repo?: string };
+
+let previousPrs: PreviousPr[] = [];
 
 enableAlternateBuffer();
 clearScreen();
-nodeCleanup((exitCode) => {
-  disableAlternateBuffer()
+
+nodeCleanup((exitCode, message) => {
+  disableAlternateBuffer();
 });
 
-const shouldPlaySound = (prNumbers: number[]) => {
-  const hasNewPr = prNumbers.some(
-    (prNumber) => !previousPrNumbers.includes(prNumber)
+const shouldPlaySound = (prs: PreviousPr[]) => {
+  const hasNewPr = prs.some(
+    (pr) =>
+      !previousPrs.some(
+        ({ number, repo }) => pr.number === number && pr.repo === repo
+      )
   );
 
   return sound && hasNewPr;
 };
 
-while (true) {
+export const runProgram = async (firstRun: boolean) => {
   spinner.start();
-  const promises: [
-    Promise<PullRequestStatusResponse>,
-    ...Promise<BasePullRequest[]>[]
-  ] = [fetchPrStatus(repo), ...(involved ? [fetchInvolvedPrs(repo)] : [])];
+
+  const prStatusPromises = repos.map(fetchPrStatus);
+  const involvedPromises = involved ? repos.map(fetchInvolvedPrs) : [];
 
   try {
-    const [fetchPrStatusResponse, fetchPrSearchResponse] = await Promise.all<
-      [
-        Promise<PullRequestStatusResponse>,
-        ...(Promise<BasePullRequest[]>[] | undefined[])
-      ]
-    >(promises);
+    const [fetchPrStatusResponses, fetchPrSearchResponses] = await Promise.all([
+      Promise.all(prStatusPromises),
+      Promise.all(involvedPromises),
+    ]);
+
     spinner.stop();
     clearScreen();
 
     // Created by you
     const { createdByHeading, prsCreatedByYou, prsCreatedByYouText } =
-      formattedTextsCreatedByYou(fetchPrStatusResponse);
+      formattedTextsCreatedByYou(fetchPrStatusResponses);
 
     // Requesting review
     const {
       requestingReviewHeading,
       prsRequestingReview,
       prsRequestingReviewText,
-    } = formattedTextsRequestingReview(fetchPrStatusResponse, labels);
+    } = formattedTextsRequestingReview(fetchPrStatusResponses, labels);
 
     // Involving you
     const { invlovedHeading, prsInvolvingYou, prsInvolvingYouText } =
       formattedTextsInvolvingYou(
-        fetchPrSearchResponse,
+        fetchPrSearchResponses,
         prsCreatedByYou,
         prsRequestingReview
       );
@@ -112,24 +128,27 @@ while (true) {
 
     output = `${output}\n\n${date}`;
 
-    const prNumbers = [
+    const prs = [
       ...prsCreatedByYou,
       ...prsRequestingReview,
       ...(prsInvolvingYou || []),
-    ].map(({ number }) => number);
+    ].map(({ number, headRepository, repository }) => ({
+      number,
+      repo: headRepository?.name ?? repository?.name,
+    }));
 
-    if (shouldPlaySound(prNumbers)) {
-      await beeper("**");
+    if (!firstRun && shouldPlaySound(prs)) {
+      beeper("**");
     }
 
-    previousPrNumbers = prNumbers;
+    previousPrs = prs;
 
     console.log(
       boxen(output, {
         padding: 1,
         borderColor: "magenta",
         borderStyle: "round",
-        title: repo,
+        title: repoNames.join(" • "),
       })
     );
   } catch (e) {
@@ -137,5 +156,8 @@ while (true) {
     disableAlternateBuffer();
     throw e;
   }
-  await Bun.sleep(intervalAsMillis);
-}
+};
+
+runProgram(true);
+
+setInterval(() => runProgram(false), intervalAsMillis);

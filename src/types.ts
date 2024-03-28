@@ -1,7 +1,7 @@
 export interface StatusCheckRollup {
   __typename: string;
   completedAt: string;
-  conclusion: "SUCCESS" | "FAILURE";
+  conclusion: "SUCCESS" | "FAILURE" | "NEUTRAL";
   detailsUrl: string;
   name: string;
   startedAt: string;
@@ -30,14 +30,41 @@ export interface BasePullRequest {
   url: string;
   isDraft: boolean;
   labels: Label[];
+  headRepository?: {
+    id: string;
+    name: string;
+  };
+  repository?: {
+    name: string;
+    nameWithOwner: string;
+  };
 }
 
+export interface Review {
+  id: string;
+  author: {
+    login: string;
+  };
+  authorAssociation: "CONTRIBUTOR";
+  body: string;
+  submittedAt: string;
+  includesCreatedEdit: boolean;
+  state:
+    | "APPROVED"
+    | "CHANGES_REQUESTED"
+    | "COMMENTED"
+    | "DISMISSED"
+    | "PENDING";
+}
 export interface PullRequest extends BasePullRequest {
   headRefName: string;
   statusCheckRollup: StatusCheckRollup[];
-  reviewDecision: "APPROVED" | "REVIEW_REQUIRED";
+  reviewDecision: "APPROVED" | "REVIEW_REQUIRED" | "CHANGES_REQUESTED";
   additions: number;
   deletions: number;
+  reviews: Review[];
+  mergeable: "CONFLICTING" | "MERGEABLE" | "UNKNOWN";
+  mergeStateStatus: "BLOCKED" | "CLEAN" | "DIRTY";
 }
 
 export interface PullRequestStatusResponse {

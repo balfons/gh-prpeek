@@ -36,7 +36,7 @@ export const fetchInvolvedPrs = async (
     "--involves",
     "@me",
     "--json",
-    "author,title,isDraft,labels,url,number",
+    "author,title,isDraft,labels,url,number,repository",
   ];
 
   return makeGhRequest(ghPrCommand);
@@ -53,7 +53,7 @@ export const fetchPrStatus = async (
     "--repo",
     repoUrl,
     "--json",
-    "title,url,number,headRefName,statusCheckRollup,isDraft,reviewDecision,labels,author,additions,deletions",
+    "title,url,number,headRefName,statusCheckRollup,isDraft,reviewDecision,labels,author,additions,deletions,headRepository,reviews,mergeable,mergeStateStatus",
   ];
 
   return makeGhRequest(ghPrCommand);
