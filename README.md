@@ -4,13 +4,10 @@ Show status of relevant GitHub pull requests live
 ![Example screenshot](example.png)
 
 ## Installation
-1. [Install GitHub CLI](https://github.com/cli/cli#installation) which prpeek depends on.
-2. Install prpeek.
+Install with Homebrew:
 ```bash
 brew tap balfons/prpeek && brew install prpeek
 ```
-
-Or download executable from latest release [here](https://github.com/balfons/prpeek/releases).
 
 ## Usage 
 
