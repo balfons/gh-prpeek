@@ -5,39 +5,51 @@ import {
   PullRequest,
   PullRequestStatusResponse,
   Review,
-} from "./types";
+} from "../types";
+import {
+  getComments,
+  getFailedStatusChecks,
+  hasConflicts,
+  isMergable,
+  isStatusFailure,
+  isStatusPending,
+  isStatusSuccessful,
+} from "./pr.util";
 
 const indent = (amount: number) => {
   return Array.from(Array(amount)).reduce(
-    (totalIndent) => `${totalIndent}${"  "}`,
+    (totalIndent) => `${totalIndent}${" "}`,
     ""
   );
 };
 
-export const formatPrTitle = (pullRequest: BasePullRequest): string => {
+export const formatReposTitle = (repos: string[]): string => {
+  return repos.map((repo) => repo.split("/").pop()).join(" • ");
+};
+
+export const formatPrTitle = (pullRequest: BasePullRequest) => {
+  const prNumberText = `#${pullRequest.number}`;
+  const subtitleIndent = prNumberText.length + 3;
   const prNumber = pullRequest.isDraft
-    ? chalk.dim(`#${pullRequest.number}`)
-    : chalk.green(`#${pullRequest.number}`);
+    ? chalk.dim(prNumberText)
+    : chalk.green(prNumberText);
   const title = terminalLink(pullRequest.title, pullRequest.url, {
     fallback: false,
   });
   const author = chalk.blue(
-    `[${pullRequest.author.name || pullRequest.author.login}]`
+    `${pullRequest.author.name || pullRequest.author.login}`
   );
 
   const repoName = chalk.cyan(
     `[${pullRequest.headRepository?.name ?? pullRequest.repository?.name}]`
   );
 
-  return `${prNumber} ${title} ${author} ${repoName}`;
-};
-
-const isMergable = ({ mergeStateStatus, mergeable }: PullRequest) => {
-  return mergeable === "MERGEABLE" && mergeStateStatus === "CLEAN";
-};
-
-const hasConflicts = ({ mergeStateStatus, mergeable }: PullRequest) => {
-  return mergeable === "CONFLICTING" && mergeStateStatus === "DIRTY";
+  return {
+    title: `${prNumber} ${title}\n${indent(
+      subtitleIndent
+    )}${author} ${repoName}`,
+    subtitleIndent,
+  };
 };
 
 const getMergeableStateText = (pr: PullRequest) => {
@@ -53,92 +65,71 @@ const getMergeableStateText = (pr: PullRequest) => {
 export const formatPrText = (pullRequest: PullRequest) => {
   const statusCheck = getStatusCheck(pullRequest);
   const reviewDecision = getReviewDecisionText(
-    pullRequest.reviewDecision,
+    pullRequest,
     pullRequest.reviews
   );
   const comments = getCommentsText(pullRequest);
-  const failedChecksText = getFailedChecksText(pullRequest.statusCheckRollup);
+  const formattedPrHeadline = formatPrTitle(pullRequest);
+  const failedChecksText = getFailedChecksText(
+    pullRequest,
+    formattedPrHeadline.subtitleIndent
+  );
   const additionsAndDeletions = getAdditionsDeletionsText(pullRequest);
   const mergeableState = getMergeableStateText(pullRequest);
 
-  return `${formatPrTitle(pullRequest)} ${additionsAndDeletions}\n${indent(
-    2
+  return `${formattedPrHeadline.title} ${additionsAndDeletions}\n${indent(
+    formattedPrHeadline.subtitleIndent - 2
   )}${statusCheck} ${comments} ${reviewDecision} ${mergeableState}${failedChecksText}`;
 };
 
-const getStatusCheck = ({ statusCheckRollup }: PullRequest) => {
-  const isSuccessful = statusCheckRollup.every(
-    (statusCheck) =>
-      statusCheck.status === "COMPLETED" &&
-      (statusCheck.conclusion === "SUCCESS" ||
-        statusCheck.conclusion === "NEUTRAL")
-  );
-  if (isSuccessful) {
+const getStatusCheck = (pullRequest: PullRequest) => {
+  if (isStatusSuccessful(pullRequest)) {
     return chalk.green("✓ Checks passing");
   }
 
-  const isPending = statusCheckRollup.some(
-    (statusCheck) => statusCheck.status === "IN_PROGRESS"
-  );
-  if (isPending) {
+  if (isStatusPending(pullRequest)) {
     return chalk.yellow("- Checks pending");
   }
 
-  const isFailure = statusCheckRollup.some(
-    (statusCheck) => statusCheck.conclusion === "FAILURE"
-  );
-  const failedChecks = getFailedChecks(statusCheckRollup);
+  const failedChecks = getFailedStatusChecks(pullRequest);
 
-  if (isFailure) {
+  if (isStatusFailure(pullRequest)) {
     return chalk.red(
-      `× ${failedChecks.length}/${statusCheckRollup.length} checks failing`
+      `× ${failedChecks.length}/${pullRequest.statusCheckRollup.length} checks failing`
     );
   }
 
   return "";
 };
 
-const getFailedChecks = (
-  statusCheckRollup: PullRequest["statusCheckRollup"]
-) => {
-  return statusCheckRollup.filter(
-    (statusCheck) => statusCheck.conclusion === "FAILURE"
-  );
-};
-
 const getCommentsText = (pullRequest: PullRequest) => {
-  const count = pullRequest.reviews.reduce(
-    (total, review) => (review.state === "COMMENTED" ? total + 1 : total),
-    0
-  );
+  const count = getComments(pullRequest).length;
   const text = count === 1 ? "Comment" : "Comments";
   return chalk.dim(`${count} ${text}`);
 };
 
 const getFailedChecksText = (
-  statusCheckRollup: PullRequest["statusCheckRollup"]
+  pullRequest: PullRequest,
+  indentAmount: number
 ) => {
-  const failedChecks = getFailedChecks(statusCheckRollup);
+  const failedChecks = getFailedStatusChecks(pullRequest);
   return failedChecks.length > 0
-    ? `\n${indent(3)}${failedChecks
+    ? `\n${indent(indentAmount)}${failedChecks
         .map((check) =>
           chalk.redBright(
             terminalLink(check.name, check.detailsUrl, { fallback: false })
           )
         )
-        .join(`\n${indent(3)}`)}`
+        .join(`\n${indent(indentAmount)}`)}`
     : "";
 };
 
-const getReviewDecisionText = (
-  reviewDecision: PullRequest["reviewDecision"],
-  reviews: Review[]
-) => {
-  if (reviewDecision === "REVIEW_REQUIRED") {
+const getReviewDecisionText = (pr: PullRequest, reviews: Review[]) => {
+  if (pr.reviewDecision === "REVIEW_REQUIRED") {
     return chalk.yellow("• Review required");
   }
 
-  if (reviewDecision === "CHANGES_REQUESTED") {
+  if (pr.reviewDecision === "CHANGES_REQUESTED") {
     const changeCount = reviews.reduce(
       (count, review) =>
         review.state === "CHANGES_REQUESTED" ? count + 1 : count,
@@ -148,12 +139,16 @@ const getReviewDecisionText = (
     return chalk.red(`⚑ ${changeCount} ${text}`);
   }
 
-  if (reviewDecision === "APPROVED") {
+  if (pr.reviewDecision === "APPROVED") {
     const approvedCount = reviews.reduce(
       (count, review) => (review.state === "APPROVED" ? count + 1 : count),
       0
     );
     return chalk.green(`✓ ${approvedCount} Approved`);
+  }
+
+  if (!pr.reviewDecision && pr.reviewRequests.length > 0) {
+    return chalk.magenta("• Review requested");
   }
 };
 
@@ -195,9 +190,9 @@ export const formattedTextsCreatedByYou = (
   );
   const prsCreatedByYouText =
     prsCreatedByYou.length === 0
-      ? `${indent(1)}${chalk.dim("No PRs created by you")}`
+      ? `${indent(2)}${chalk.dim("No PRs created by you")}`
       : prsCreatedByYou
-          .map((pr) => `${indent(1)}${formatPrText(pr)}`)
+          .map((pr) => `${indent(2)}${formatPrText(pr)}`)
           .join("\n");
 
   return {
@@ -223,9 +218,9 @@ export const formattedTextsRequestingReview = (
     );
   const prsRequestingReviewText =
     prsRequestingReview.length === 0
-      ? `${indent(1)}${chalk.dim("No PRs requesting review from you")}`
+      ? `${indent(2)}${chalk.dim("No PRs requesting review from you")}`
       : prsRequestingReview
-          .map((pr) => `${indent(1)}${formatPrText(pr)}`)
+          .map((pr) => `${indent(2)}${formatPrText(pr)}`)
           .join("\n");
 
   return {
@@ -254,9 +249,9 @@ export const formattedTextsInvolvingYou = (
   );
   const prsInvolvingYouText =
     prsInvolvingYou.length === 0
-      ? `${indent(1)}${chalk.dim("No PRs involving you")}`
+      ? `${indent(2)}${chalk.dim("No PRs involving you")}`
       : prsInvolvingYou
-          ?.map((pr) => `${indent(1)}${formatPrTitle(pr)}`)
+          ?.map((pr) => `${indent(2)}${formatPrTitle(pr).title}`)
           .join("\n");
 
   return {

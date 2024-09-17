@@ -53,7 +53,7 @@ export const fetchPrStatus = async (
     "--repo",
     repoUrl,
     "--json",
-    "title,url,number,headRefName,statusCheckRollup,isDraft,reviewDecision,labels,author,additions,deletions,headRepository,reviews,mergeable,mergeStateStatus",
+    "title,url,number,headRefName,statusCheckRollup,isDraft,reviewDecision,reviewRequests,labels,author,additions,deletions,headRepository,reviews,mergeable,mergeStateStatus",
   ];
 
   return makeGhRequest(ghPrCommand);

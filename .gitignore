@@ -168,5 +168,5 @@ dist
 .yarn/install-state.gz
 .pnp.\*
 
-prpeek
-prpeek.tar.gz
+gh-prpeek
+gh-prpeek.tar.gz

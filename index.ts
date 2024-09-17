@@ -1,28 +1,33 @@
 import chalk from "chalk";
 import boxen from "boxen";
-import { Command } from "commander";
-import beeper from "beeper";
+import { program } from "commander";
 import ora from "ora";
-import nodeCleanup from "node-cleanup";
+import { createServer } from "node:net";
 import {
+  formatReposTitle,
   formattedDateText,
   formattedTextsCreatedByYou,
   formattedTextsInvolvingYou,
   formattedTextsRequestingReview,
-} from "./src/textFormatter";
+} from "./src/utils/output.util";
 import { fetchInvolvedPrs, fetchPrStatus } from "./src/commands";
+import packageJson from "./package.json";
 import {
   clearScreen,
   commaSeparatedList,
   disableAlternateBuffer,
   enableAlternateBuffer,
-} from "./src/utils";
-
-// Program setup
-const program = new Command();
+} from "./src/utils/terminal.util";
+import { PullRequest } from "./src/types";
+import {
+  notifyFailingePrs,
+  notifyMergablePrs,
+  notifyNewCommentsPrs,
+  notifyNewPrs,
+} from "./src/notify";
 
 program
-  .version('2.0.0')
+  .version(packageJson.version)
   .description(`Show status of relevant pull requests live`)
   .requiredOption(
     "-r, --repos <repos>",
@@ -30,7 +35,11 @@ program
     commaSeparatedList
   )
   .option("-i, --interval <interval>", "Update interval in seconds", "15")
-  .option("-s, --sound", "Sound when a new PR is added", false)
+  .option(
+    "-n, --notify",
+    "Notification when a new PR is added or when one of your PRs becomes mergable",
+    false
+  )
   .option("--involved", "Show additional PRs where you are involved", false)
   .option(
     "-l, --labels <items>",
@@ -40,17 +49,17 @@ program
 
 program.parse();
 
-const { repos, interval, sound, labels, involved } = program.opts<{
+const { repos, interval, notify, labels, involved } = program.opts<{
   repos: string[];
   interval: number;
-  sound: boolean;
+  notify: boolean;
   labels: string[];
   involved: boolean;
 }>();
 
 const intervalAsMillis = Number(interval * 1000);
 
-const repoNames = repos.map((repo) => repo.split("/").pop());
+const reposTitle = formatReposTitle(repos);
 
 if (isNaN(intervalAsMillis)) {
   program.error("Interval must be a number");
@@ -62,29 +71,29 @@ const spinner = ora({
   color: "magenta",
 });
 
-type PreviousPr = { number: number; repo?: string };
-
-let previousPrs: PreviousPr[] = [];
+let previousPrs: PullRequest[] = [];
+let yourPreviousPrs: PullRequest[] = [];
 
 enableAlternateBuffer();
 clearScreen();
 
-nodeCleanup((exitCode, message) => {
-  disableAlternateBuffer();
+const server = createServer().listen(); // Keep script running
+
+[
+  `exit`,
+  `SIGINT`,
+  `SIGUSR1`,
+  `SIGUSR2`,
+  `uncaughtException`,
+  `SIGTERM`,
+].forEach((eventType) => {
+  process.on(eventType, () => {
+    server.close();
+    disableAlternateBuffer();
+  });
 });
 
-const shouldPlaySound = (prs: PreviousPr[]) => {
-  const hasNewPr = prs.some(
-    (pr) =>
-      !previousPrs.some(
-        ({ number, repo }) => pr.number === number && pr.repo === repo
-      )
-  );
-
-  return sound && hasNewPr;
-};
-
-export const runProgram = async (firstRun: boolean) => {
+const runProgram = async (firstRun: boolean) => {
   spinner.start();
 
   const prStatusPromises = repos.map(fetchPrStatus);
@@ -111,12 +120,11 @@ export const runProgram = async (firstRun: boolean) => {
     } = formattedTextsRequestingReview(fetchPrStatusResponses, labels);
 
     // Involving you
-    const { invlovedHeading, prsInvolvingYou, prsInvolvingYouText } =
-      formattedTextsInvolvingYou(
-        fetchPrSearchResponses,
-        prsCreatedByYou,
-        prsRequestingReview
-      );
+    const { invlovedHeading, prsInvolvingYouText } = formattedTextsInvolvingYou(
+      fetchPrSearchResponses,
+      prsCreatedByYou,
+      prsRequestingReview
+    );
 
     const date = chalk.dim(`Last updated: ${formattedDateText()}`);
 
@@ -128,36 +136,34 @@ export const runProgram = async (firstRun: boolean) => {
 
     output = `${output}\n\n${date}`;
 
-    const prs = [
-      ...prsCreatedByYou,
-      ...prsRequestingReview,
-      ...(prsInvolvingYou || []),
-    ].map(({ number, headRepository, repository }) => ({
-      number,
-      repo: headRepository?.name ?? repository?.name,
-    }));
+    const prs = [...prsCreatedByYou, ...prsRequestingReview];
 
-    if (!firstRun && shouldPlaySound(prs)) {
-      beeper("**");
+    if (!firstRun && notify) {
+      notifyNewPrs(previousPrs, prs);
+      notifyMergablePrs(yourPreviousPrs, prsCreatedByYou);
+      notifyFailingePrs(yourPreviousPrs, prsCreatedByYou);
+      notifyNewCommentsPrs(yourPreviousPrs, prsCreatedByYou);
     }
 
     previousPrs = prs;
+    yourPreviousPrs = prsCreatedByYou;
 
     console.log(
       boxen(output, {
         padding: 1,
         borderColor: "magenta",
         borderStyle: "round",
-        title: repoNames.join(" • "),
+        title: reposTitle,
       })
     );
+
+    setTimeout(() => runProgram(false), intervalAsMillis).unref(); // unref to not block main thread
   } catch (e) {
     spinner.stop();
+    server.close();
     disableAlternateBuffer();
     throw e;
   }
 };
 
 runProgram(true);
-
-setInterval(() => runProgram(false), intervalAsMillis);

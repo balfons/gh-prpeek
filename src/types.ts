@@ -63,6 +63,9 @@ export interface PullRequest extends BasePullRequest {
   additions: number;
   deletions: number;
   reviews: Review[];
+  reviewRequests: {
+    name: string;
+  }[];
   mergeable: "CONFLICTING" | "MERGEABLE" | "UNKNOWN";
   mergeStateStatus: "BLOCKED" | "CLEAN" | "DIRTY";
 }
