@@ -5,8 +5,8 @@
   "version": "3.0.0",
   "scripts": {
     "start": "bun run index.ts",
-    "compile": "bun build ./index.ts --compile --outfile gh-prpeek",
-    "release": "bun compile && tar -czf gh-prpeek.tar.gz gh-prpeek && shasum -a 256 gh-prpeek.tar.gz"
+    "compile": "bun build ./index.ts --compile --outfile $(echo $FILE_PATH)",
+    "release": "bun compile && tar -czf dist/gh-prpeek.tar.gz dist/gh-prpeek && shasum -a 256 dist/gh-prpeek.tar.gz"
   },
   "devDependencies": {
     "@types/node-notifier": "^8.0.5",
