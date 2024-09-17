@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
       - uses: cli/gh-extension-precompile@v2
         with:
           build_script_override: "script/build.sh"
