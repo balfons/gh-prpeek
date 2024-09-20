@@ -81,7 +81,7 @@ export const notifyMergablePrs = (
   if (mergablePrs.length > 0) {
     mergablePrs.forEach((pr) => {
       notifier.notify({
-        title: `✅ Mergable: ${pr.number}`,
+        title: `✅ Mergable: #${pr.number}`,
         subtitle: pr.author.name || pr.author.login,
         message: pr.title,
         open: pr.url,
@@ -101,7 +101,7 @@ export const notifyFailingePrs = (
   if (failingPrs.length > 0) {
     failingPrs.forEach((pr) => {
       notifier.notify({
-        title: `🚨 Failed: ${pr.number}`,
+        title: `🚨 Failed: #${pr.number}`,
         subtitle: pr.author.name || pr.author.login,
         message: pr.title,
         open: pr.url,
@@ -121,7 +121,7 @@ export const notifyNewCommentsPrs = (
   if (newComments.length > 0) {
     newComments.forEach(({ pullRequest, newComments }) => {
       notifier.notify({
-        title: `💬 New comment: ${pullRequest.number}`,
+        title: `💬 New comment: #${pullRequest.number}`,
         subtitle: newComments.map((c) => c.author.login).join(", "),
         message: pullRequest.title,
         open: pullRequest.url,
