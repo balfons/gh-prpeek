@@ -7,7 +7,12 @@ Show status of relevant GitHub pull requests live
 1. Install GitHub CLI: https://cli.github.com/
 2. Install prpeek as a GitHub CLI extension:
 ```bash
-gh extension install prpeek
+gh extension install balfons/gh-prpeek
+```
+
+## Update
+```bash
+gh extension upgrade balfons/gh-prpeek
 ```
 
 ## Usage 
