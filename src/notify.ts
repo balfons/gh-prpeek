@@ -1,12 +1,10 @@
 import notifier from "node-notifier";
-import { PullRequest, Review } from "./types";
-import { getComments, isMergable, isStatusFailure } from "./utils/pr.util";
+import { CheckStatus, PullRequest, ReviewComment } from "./models/PullRequest";
 
 const findPr = (allPrs: PullRequest[], prToFind: PullRequest) =>
   allPrs.find(
-    ({ number, headRepository }) =>
-      prToFind.number === number &&
-      prToFind.headRepository?.id === headRepository?.id
+    ({ number, repositoryId }) =>
+      prToFind.number === number && prToFind.repositoryId === repositoryId
   );
 
 const newPrs = (previousPrs: PullRequest[], prs: PullRequest[]) => {
@@ -16,30 +14,34 @@ const newPrs = (previousPrs: PullRequest[], prs: PullRequest[]) => {
 const newMergablePrs = (previousPrs: PullRequest[], prs: PullRequest[]) => {
   return prs.filter((pr) => {
     const previousPr = findPr(previousPrs, pr);
-    return previousPr && !isMergable(previousPr) && isMergable(pr);
+    return previousPr && !previousPr.isMergable && pr.isMergable;
   });
 };
 
 const newFailingPrs = (previousPrs: PullRequest[], prs: PullRequest[]) => {
   return prs.filter((pr) => {
     const previousPr = findPr(previousPrs, pr);
-    return previousPr && !isStatusFailure(previousPr) && isStatusFailure(pr);
+    return (
+      previousPr &&
+      previousPr.checkStatus !== CheckStatus.FAILURE &&
+      pr.checkStatus === CheckStatus.FAILURE
+    );
   });
 };
 
 const getNewComments = (
   previousPrs: PullRequest[],
   prs: PullRequest[]
-): { pullRequest: PullRequest; newComments: Review[] }[] =>
-  prs.reduce<{ pullRequest: PullRequest; newComments: Review[] }[]>(
+): { pullRequest: PullRequest; newComments: ReviewComment[] }[] =>
+  prs.reduce<{ pullRequest: PullRequest; newComments: ReviewComment[] }[]>(
     (prsWithNewComments, pr) => {
       const previousPr = findPr(previousPrs, pr);
-      const previousComments = previousPr ? getComments(previousPr) : [];
+      const previousComments = previousPr ? previousPr.reviewComments : [];
 
-      const newComments = getComments(pr).filter(
-        (review) =>
+      const newComments = pr.reviewComments.filter(
+        (comment) =>
           !previousComments.find(
-            (previousComment) => previousComment.id === review.id
+            (previousComment) => previousComment.id === comment.id
           )
       );
 
@@ -62,7 +64,7 @@ export const notifyNewPrs = (
     allNew.forEach((pr) => {
       notifier.notify({
         title: `🆕 New: #${pr.number}`,
-        subtitle: pr.author.name || pr.author.login,
+        subtitle: pr.author,
         message: pr.title,
         open: pr.url,
         sound: true,
@@ -82,7 +84,7 @@ export const notifyMergablePrs = (
     mergablePrs.forEach((pr) => {
       notifier.notify({
         title: `✅ Mergable: #${pr.number}`,
-        subtitle: pr.author.name || pr.author.login,
+        subtitle: pr.author,
         message: pr.title,
         open: pr.url,
         sound: true,
@@ -102,7 +104,7 @@ export const notifyFailingePrs = (
     failingPrs.forEach((pr) => {
       notifier.notify({
         title: `🚨 Failed: #${pr.number}`,
-        subtitle: pr.author.name || pr.author.login,
+        subtitle: pr.author,
         message: pr.title,
         open: pr.url,
         sound: true,
@@ -122,7 +124,7 @@ export const notifyNewCommentsPrs = (
     newComments.forEach(({ pullRequest, newComments }) => {
       notifier.notify({
         title: `💬 New comment: #${pullRequest.number}`,
-        subtitle: newComments.map((c) => c.author.login).join(", "),
+        subtitle: newComments.map((c) => c.author).join(", "),
         message: pullRequest.title,
         open: pullRequest.url,
         sound: true,

@@ -54,5 +54,5 @@ bun compile
 
 **Run compiled executable**
 ```bash
-./gh-prpeek --repos <owner>/<repository> --notify --interval 15 --labels bug,feature --involved
+./dist/gh-prpeek --repos <owner>/<repository> --notify --interval 15 --labels bug,feature --involved
 ```

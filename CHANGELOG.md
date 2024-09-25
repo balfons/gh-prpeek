@@ -1,27 +1,37 @@
 # Changelog
 
-## 3.0.0
+## 3.0.1
+
+### Added 
+- Notification when new version of prpeek is available.
+
+### Fixed
+- Don't wait for async operations before exiting program.
+
+
+## 3.0.0 - 2024-09-20
 
 ### Changed
-- Convert project into a GitHub CLI extension
+
+- Convert project into a GitHub CLI extension.
 
 ### Added
 
-- Support for notifications (`-n` or `--notify`)
-  - Notification when new PR is added
-  - Notification when one of your PRs becomes mergable
-  - Notification when one of your PRs fails CI/CD
-  - Notification when one of your PRs gets a new comment
+- Support for notifications (`-n` or `--notify`).
+  - Notification when new PR is added.
+  - Notification when one of your PRs becomes mergable.
+  - Notification when one of your PRs fails CI/CD.
+  - Notification when one of your PRs gets a new comment.
 
 ### Fixed
 
-- Don't block main thread to make exiting the script easier
+- Don't block main thread to make exiting the script easier.
 
 ### Removed
 
 - Remove `--sound` flag in favour of `--notify`.
 
-## 2.0.0
+## 2.0.0 - 2024-03-28
 
 ### Added
 

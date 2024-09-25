@@ -1,4 +1,11 @@
-import { BasePullRequest, PullRequestStatusResponse } from "./types";
+import { PullRequest } from "./models/PullRequest";
+import { PullRequestFactory } from "./models/PullRequestFactory";
+import { PullRequestInvolved } from "./models/PullRequestInvolved";
+import { PullRequestInvolvedFactory } from "./models/PullRequestInvolvedFactory";
+import {
+  PullRequestSearchResponse,
+  PullRequestStatusResponses,
+} from "./models/GitHubResponse";
 
 const makeGhRequest = async <T>(command: string[]): Promise<T> => {
   const env = { ...process.env, GH_PAGER: "" };
@@ -22,9 +29,19 @@ const makeGhRequest = async <T>(command: string[]): Promise<T> => {
   }
 };
 
+export const prSearchFields = [
+  "author",
+  "title",
+  "isDraft",
+  "labels",
+  "url",
+  "number",
+  "repository",
+] as const;
+
 export const fetchInvolvedPrs = async (
   repo: string
-): Promise<BasePullRequest[]> => {
+): Promise<PullRequestInvolved[]> => {
   const ghPrCommand = [
     "gh",
     "search",
@@ -36,15 +53,38 @@ export const fetchInvolvedPrs = async (
     "--involves",
     "@me",
     "--json",
-    "author,title,isDraft,labels,url,number,repository",
+    prSearchFields.join(","),
   ];
 
-  return makeGhRequest(ghPrCommand);
+  const pullRequests = await makeGhRequest<PullRequestSearchResponse[]>(
+    ghPrCommand
+  );
+
+  return pullRequests.map(PullRequestInvolvedFactory.from);
 };
+
+export const prStatusFields = [
+  "title",
+  "url",
+  "number",
+  "headRefName",
+  "statusCheckRollup",
+  "isDraft",
+  "reviewDecision",
+  "reviewRequests",
+  "labels",
+  "author",
+  "additions",
+  "deletions",
+  "headRepository",
+  "reviews",
+  "mergeable",
+  "mergeStateStatus",
+] as const;
 
 export const fetchPrStatus = async (
   repo: string
-): Promise<PullRequestStatusResponse> => {
+): Promise<{ createdBy: PullRequest[]; needsReview: PullRequest[] }> => {
   const repoUrl = `https://github.com/${repo}`;
   const ghPrCommand = [
     "gh",
@@ -53,8 +93,35 @@ export const fetchPrStatus = async (
     "--repo",
     repoUrl,
     "--json",
-    "title,url,number,headRefName,statusCheckRollup,isDraft,reviewDecision,reviewRequests,labels,author,additions,deletions,headRepository,reviews,mergeable,mergeStateStatus",
+    prStatusFields.join(","),
   ];
 
-  return makeGhRequest(ghPrCommand);
+  const { createdBy, needsReview } =
+    await makeGhRequest<PullRequestStatusResponses>(ghPrCommand);
+
+  return {
+    createdBy: createdBy.map(PullRequestFactory.from),
+    needsReview: needsReview.map(PullRequestFactory.from),
+  };
+};
+
+export const fetchLatestRelease = async (): Promise<string | undefined> => {
+  const ghReleaseCommand = [
+    "gh",
+    "release",
+    "list",
+    "-R",
+    "balfons/gh-prpeek",
+    "--json",
+    "tagName,isPrerelease",
+  ];
+
+  const releases = await makeGhRequest<
+    {
+      tagName: string;
+      isPrerelease: boolean;
+    }[]
+  >(ghReleaseCommand);
+
+  return releases.find((release) => !release.isPrerelease)?.tagName;
 };

@@ -1,4 +1,4 @@
-export interface StatusCheckRollup {
+interface StatusCheckRollup {
   __typename: string;
   completedAt: string;
   conclusion: "SUCCESS" | "FAILURE" | "NEUTRAL";
@@ -9,38 +9,21 @@ export interface StatusCheckRollup {
   workflowName: string;
 }
 
-export interface Author {
+interface Author {
   id: string;
   is_bot: boolean;
   login: string;
   name: string;
 }
 
-export interface Label {
+interface Label {
   id: string;
   name: string;
   description: string;
   color: string;
 }
 
-export interface BasePullRequest {
-  author: Author;
-  title: string;
-  number: number;
-  url: string;
-  isDraft: boolean;
-  labels: Label[];
-  headRepository?: {
-    id: string;
-    name: string;
-  };
-  repository?: {
-    name: string;
-    nameWithOwner: string;
-  };
-}
-
-export interface Review {
+interface Review {
   id: string;
   author: {
     login: string;
@@ -56,8 +39,34 @@ export interface Review {
     | "DISMISSED"
     | "PENDING";
 }
-export interface PullRequest extends BasePullRequest {
+
+export interface GitHubSearchPullRequest {
+  author: Author;
+  title: string;
+  number: number;
+  url: string;
+  isDraft: boolean;
+  labels: Label[];
+  repository: {
+    name: string;
+    nameWithOwner: string;
+  };
+}
+export interface GitHubPullRequest {
+  title: string;
+  url: string;
+  isDraft: boolean;
+  number: number;
   headRefName: string;
+  labels: Label[];
+  author: {
+    login: string;
+    name: string;
+  };
+  headRepository: {
+    id: string;
+    name: string;
+  };
   statusCheckRollup: StatusCheckRollup[];
   reviewDecision: "APPROVED" | "REVIEW_REQUIRED" | "CHANGES_REQUESTED";
   additions: number;
@@ -70,7 +79,3 @@ export interface PullRequest extends BasePullRequest {
   mergeStateStatus: "BLOCKED" | "CLEAN" | "DIRTY";
 }
 
-export interface PullRequestStatusResponse {
-  createdBy: PullRequest[];
-  needsReview: PullRequest[];
-}

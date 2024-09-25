@@ -9,8 +9,13 @@ import {
   formattedTextsCreatedByYou,
   formattedTextsInvolvingYou,
   formattedTextsRequestingReview,
+  getUpgradeMessage,
 } from "./src/utils/output.util";
-import { fetchInvolvedPrs, fetchPrStatus } from "./src/commands";
+import {
+  fetchInvolvedPrs,
+  fetchLatestRelease,
+  fetchPrStatus,
+} from "./src/commands";
 import packageJson from "./package.json";
 import {
   clearScreen,
@@ -18,13 +23,13 @@ import {
   disableAlternateBuffer,
   enableAlternateBuffer,
 } from "./src/utils/terminal.util";
-import { PullRequest } from "./src/types";
 import {
   notifyFailingePrs,
   notifyMergablePrs,
   notifyNewCommentsPrs,
   notifyNewPrs,
 } from "./src/notify";
+import { PullRequest } from "./src/models/PullRequest";
 
 program
   .version(packageJson.version)
@@ -79,21 +84,37 @@ clearScreen();
 
 const server = createServer().listen(); // Keep script running
 
-[
-  `exit`,
-  `SIGINT`,
-  `SIGUSR1`,
-  `SIGUSR2`,
-  `uncaughtException`,
-  `SIGTERM`,
-].forEach((eventType) => {
-  process.on(eventType, () => {
-    server.close();
-    disableAlternateBuffer();
-  });
-});
+[`SIGINT`, `SIGUSR1`, `SIGUSR2`, `uncaughtException`, `SIGTERM`].forEach(
+  (eventType) => {
+    process.on(eventType, () => {
+      spinner.stop();
+      server.close();
+      disableAlternateBuffer();
+      console.log(eventType);
+      process.exit();
+    });
+  }
+);
 
 const runProgram = async (firstRun: boolean) => {
+  if (firstRun) {
+    const latestRelease = await fetchLatestRelease();
+
+    if (latestRelease && latestRelease !== packageJson.version) {
+      console.log(
+        boxen(getUpgradeMessage(packageJson.version, latestRelease), {
+          padding: 1,
+          align: "center",
+          borderColor: "magenta",
+          borderStyle: "round",
+        })
+      );
+      const result = prompt("Press Enter to skip...");
+      console.log(result);
+      clearScreen();
+    }
+  }
+
   spinner.start();
 
   const prStatusPromises = repos.map(fetchPrStatus);
@@ -110,14 +131,19 @@ const runProgram = async (firstRun: boolean) => {
 
     // Created by you
     const { createdByHeading, prsCreatedByYou, prsCreatedByYouText } =
-      formattedTextsCreatedByYou(fetchPrStatusResponses);
+      formattedTextsCreatedByYou(
+        fetchPrStatusResponses.flatMap((response) => response.createdBy)
+      );
 
     // Requesting review
     const {
       requestingReviewHeading,
       prsRequestingReview,
       prsRequestingReviewText,
-    } = formattedTextsRequestingReview(fetchPrStatusResponses, labels);
+    } = formattedTextsRequestingReview(
+      fetchPrStatusResponses.flatMap((response) => response.needsReview),
+      labels
+    );
 
     // Involving you
     const { invlovedHeading, prsInvolvingYouText } = formattedTextsInvolvingYou(
