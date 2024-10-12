@@ -1,69 +1,24 @@
-import { PullRequest } from "./models/PullRequest";
+import { $, ShellPromise, ShellError } from "bun";
 import { PullRequestFactory } from "./models/PullRequestFactory";
-import { PullRequestInvolved } from "./models/PullRequestInvolved";
-import { PullRequestInvolvedFactory } from "./models/PullRequestInvolvedFactory";
-import {
-  PullRequestSearchResponse,
-  PullRequestStatusResponses,
-} from "./models/GitHubResponse";
+import { PullRequestResponse } from "./models/GitHubResponse";
 
-const makeGhRequest = async <T>(command: string[]): Promise<T> => {
-  const env = { ...process.env, GH_PAGER: "" };
+const makeGhJsonRequest = async <T>(
+  command: ShellPromise,
+  args: Record<string, string>
+): Promise<T> => {
+  const env = { ...process.env, GH_PAGER: "", ...args };
   try {
-    const process = Bun.spawnSync(command, {
-      env,
-    });
-
-    const error = await new Response(process.stderr).text();
-    if (error) {
-      throw error;
-    } else {
-      return new Response(process.stdout).json();
-    }
+    return await command.env(env).json();
   } catch (error: any) {
-    if (error.code === "ERR_INVALID_ARG_TYPE") {
-      throw "GitHub CLI needs to be installed in order to run prpeek: https://github.com/cli/cli#installation";
-    } else {
-      throw error;
+    if (error.stderr) {
+      throw error.stderr.toString();
     }
+
+    throw error;
   }
 };
 
-export const prSearchFields = [
-  "author",
-  "title",
-  "isDraft",
-  "labels",
-  "url",
-  "number",
-  "repository",
-] as const;
-
-export const fetchInvolvedPrs = async (
-  repo: string
-): Promise<PullRequestInvolved[]> => {
-  const ghPrCommand = [
-    "gh",
-    "search",
-    "prs",
-    "--repo",
-    repo,
-    "--state",
-    "open",
-    "--involves",
-    "@me",
-    "--json",
-    prSearchFields.join(","),
-  ];
-
-  const pullRequests = await makeGhRequest<PullRequestSearchResponse[]>(
-    ghPrCommand
-  );
-
-  return pullRequests.map(PullRequestInvolvedFactory.from);
-};
-
-export const prStatusFields = [
+export const prFields = [
   "title",
   "url",
   "number",
@@ -82,46 +37,58 @@ export const prStatusFields = [
   "mergeStateStatus",
 ] as const;
 
-export const fetchPrStatus = async (
-  repo: string
-): Promise<{ createdBy: PullRequest[]; needsReview: PullRequest[] }> => {
-  const repoUrl = `https://github.com/${repo}`;
-  const ghPrCommand = [
-    "gh",
-    "pr",
-    "status",
-    "--repo",
-    repoUrl,
-    "--json",
-    prStatusFields.join(","),
-  ];
+export const fetchReviewedPrs = async (repo: string) => {
+  const command = $`gh pr list --search "reviewed-by:@me -author:@me " --repo $REPO --json $FIELDS`;
 
-  const { createdBy, needsReview } =
-    await makeGhRequest<PullRequestStatusResponses>(ghPrCommand);
+  const pullRequests = await makeGhJsonRequest<PullRequestResponse[]>(command, {
+    REPO: repo,
+    FIELDS: prFields.join(","),
+  });
 
-  return {
-    createdBy: createdBy.map(PullRequestFactory.from),
-    needsReview: needsReview.map(PullRequestFactory.from),
-  };
+  return pullRequests.map(PullRequestFactory.from);
+};
+
+export const fetchMyPullRequests = async (repo: string) => {
+  const command = $`gh pr list --repo $REPO --author="@me" --json $FIELDS`;
+
+  const pullRequests = await makeGhJsonRequest<PullRequestResponse[]>(command, {
+    REPO: repo,
+    FIELDS: prFields.join(","),
+  });
+
+  return pullRequests.map(PullRequestFactory.from);
+};
+
+export const fetchRequestingReviewPullRequests = async (
+  repo: string,
+  labels: string[]
+) => {
+  const command = $`gh pr list --repo $REPO --search $SEARCH --json $FIELDS`;
+  let queries = ["review-requested:@me"];
+
+  if (labels.length > 0) {
+    queries.push(`label:${labels.join(",")}`);
+  }
+
+  const pullRequests = await makeGhJsonRequest<PullRequestResponse[]>(command, {
+    REPO: repo,
+    FIELDS: prFields.join(","),
+    SEARCH: `${queries.join(" ")}`,
+  });
+
+  return pullRequests.map(PullRequestFactory.from);
 };
 
 export const fetchLatestRelease = async (): Promise<string | undefined> => {
-  const ghReleaseCommand = [
-    "gh",
-    "release",
-    "list",
-    "-R",
-    "balfons/gh-prpeek",
-    "--json",
-    "tagName,isPrerelease",
-  ];
+  const fields = ["tagName", "isPrerelease"];
+  const command = $`gh release list -R balfons/gh-prpeek --json $FIELDS`;
 
-  const releases = await makeGhRequest<
+  const releases = await makeGhJsonRequest<
     {
       tagName: string;
       isPrerelease: boolean;
     }[]
-  >(ghReleaseCommand);
+  >(command, { FIELDS: fields.join(",") });
 
   return releases.find((release) => !release.isPrerelease)?.tagName;
 };

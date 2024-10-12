@@ -15,7 +15,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.1.28
+          bun-version: 1.1.30
+      - id: import_gpg
+        uses: crazy-max/ghaction-import-gpg@v5
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
       - uses: cli/gh-extension-precompile@v2
         with:
+          gpg_fingerprint: ${{ steps.import_gpg.outputs.fingerprint }}
+          generate_attestations: true
           build_script_override: "script/build.sh"

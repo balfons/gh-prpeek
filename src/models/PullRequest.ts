@@ -1,5 +1,3 @@
-import { PullRequestBase } from "./PullRequestBase";
-
 export type ReviewComment = {
   author: string;
   id: string;
@@ -17,7 +15,14 @@ export enum CheckStatus {
   NONE = "NONE",
 }
 
-export interface PullRequest extends PullRequestBase {
+export interface PullRequest {
+  title: string;
+  number: number;
+  repository: string;
+  url: string;
+  labels: string[];
+  author: string;
+  isDraft: boolean;
   isReviewRequested: boolean;
   isMergable: boolean;
   repositoryId: string;

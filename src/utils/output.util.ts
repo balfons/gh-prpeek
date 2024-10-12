@@ -1,8 +1,8 @@
 import chalk from "chalk";
 import terminalLink from "terminal-link";
 import { CheckStatus, PullRequest } from "../models/PullRequest";
-import { PullRequestInvolved } from "../models/PullRequestInvolved";
-import { PullRequestBase } from "../models/PullRequestBase";
+import boxen, { Options } from "boxen";
+import terminalColumns from "terminal-columns";
 
 const indent = (amount: number) => {
   return Array.from(Array(amount)).reduce(
@@ -20,28 +20,33 @@ export const getUpgradeMessage = (
   )}\nRun ${chalk.cyan(`gh extension upgrade balfons/gh-prpeek`)} to update`;
 };
 
-export const formatReposTitle = (repos: string[]): string => {
-  return repos.map((repo) => repo.split("/").pop()).join(" • ");
-};
+export const formatRepoNames = (repos: string[]): string[] =>
+  repos.map((repo) => repo.split("/").pop()).filter((r) => r !== undefined);
 
-export const formatPrTitle = (pullRequest: PullRequestBase) => {
-  const prNumberText = `#${pullRequest.number}`;
-  const subtitleIndent = prNumberText.length + 3;
-  const prNumber = pullRequest.isDraft
+const formatPrNumber = (pr: PullRequest) => {
+  const prNumberText = `#${pr.number}`;
+  const prNumber = pr.isDraft
     ? chalk.dim(prNumberText)
     : chalk.green(prNumberText);
-  const title = terminalLink(pullRequest.title, pullRequest.url, {
-    fallback: false,
-  });
-  const author = chalk.blue(pullRequest.author);
-  const repoName = chalk.cyan(`[${pullRequest.repository}]`);
 
   return {
-    title: `${prNumber} ${title}\n${indent(
-      subtitleIndent
-    )}${author} ${repoName}`,
-    subtitleIndent,
+    prNumber,
+    prNumberLength: prNumberText.length + 1,
   };
+};
+
+const formatPrTitle = (pr: PullRequest) => {
+  return terminalLink(pr.title, pr.url, {
+    fallback: false,
+  });
+};
+
+const formatPrAuthor = (pr: PullRequest) => {
+  return chalk.blue(pr.author);
+};
+
+const formatPrRepo = (pr: PullRequest) => {
+  return chalk.cyan(`[${pr.repository}]`);
 };
 
 const getMergeableStateText = (pr: PullRequest) => {
@@ -54,49 +59,59 @@ const getMergeableStateText = (pr: PullRequest) => {
   }
 };
 
-export const formatPrText = (pullRequest: PullRequest) => {
-  const statusCheck = getStatusCheckText(pullRequest);
-  const reviewDecision = getReviewDecisionText(pullRequest);
-  const comments = getCommentsText(pullRequest);
-  const formattedPrHeadline = formatPrTitle(pullRequest);
-  const failedChecksText = getFailedChecksText(
-    pullRequest,
-    formattedPrHeadline.subtitleIndent
-  );
-  const additionsAndDeletions = getAdditionsDeletionsText(pullRequest);
-  const mergeableState = getMergeableStateText(pullRequest);
+export const formatPrText = (pr: PullRequest) => {
+  const { prNumber: number, prNumberLength: infoIndent } = formatPrNumber(pr);
+  const title = formatPrTitle(pr);
+  const author = formatPrAuthor(pr);
+  const repo = formatPrRepo(pr);
+  const additionsAndDeletions = getAdditionsDeletionsText(pr);
+  const statusCheck = getStatusCheckText(pr);
+  const comments = getCommentsText(pr);
+  const reviewDecision = getReviewDecisionText(pr);
+  const mergeableState = getMergeableStateText(pr);
+  const failedChecksText = getFailedChecksText(pr, infoIndent);
 
-  return `${formattedPrHeadline.title} ${additionsAndDeletions}\n${indent(
-    formattedPrHeadline.subtitleIndent - 2
-  )}${statusCheck} ${comments} ${reviewDecision} ${mergeableState}${failedChecksText}`;
+  const titleRow = `${number} ${title}`;
+  const infoRow1 = `${author} ${repo} ${additionsAndDeletions}`;
+  const infoRow2 = `${statusCheck} ${comments} ${reviewDecision} ${mergeableState}`;
+
+  let output = `${titleRow}\n${indent(infoIndent)}${infoRow1}\n${indent(
+    infoIndent - 2
+  )}${infoRow2}`;
+
+  if (failedChecksText) {
+    output = `${output}\n${indent(infoIndent)}${failedChecksText}`;
+  }
+
+  return output;
 };
 
-const getStatusCheckText = (pullRequest: PullRequest) => {
-  switch (pullRequest.checkStatus) {
+const getStatusCheckText = (pr: PullRequest) => {
+  switch (pr.checkStatus) {
     case CheckStatus.SUCCESSFUL:
       return chalk.green("✓ Checks passing");
     case CheckStatus.PENDING:
       return chalk.yellow("- Checks pending");
     case CheckStatus.FAILURE:
       return chalk.red(
-        `× ${pullRequest.failingChecks.length}/${pullRequest.totalChecksCount} checks failing`
+        `× ${pr.failingChecks.length}/${pr.totalChecksCount} checks failing`
       );
     case CheckStatus.NONE:
       return " ";
   }
 };
 
-const getCommentsText = (pullRequest: PullRequest) => {
-  const count = pullRequest.reviewComments.length;
+const getCommentsText = (pr: PullRequest) => {
+  const count = pr.reviewComments.length;
   const text = count === 1 ? "Comment" : "Comments";
-  return chalk.dim(`${count} ${text}`);
+  return chalk.dim(`◆ ${count} ${text}`);
 };
 
 const getFailedChecksText = (pr: PullRequest, indentAmount: number) => {
   const failedChecks = pr.failingChecks;
 
   if (failedChecks.length > 0) {
-    return `\n${indent(indentAmount)}${failedChecks
+    return `${failedChecks
       .map((check) =>
         chalk.redBright(
           terminalLink(check.name, check.url, { fallback: false })
@@ -157,74 +172,109 @@ export const formattedDateText = () => {
   return `${formattedDate} ${formattedTime}`;
 };
 
-export const formattedTextsCreatedByYou = (prsCreatedByYou: PullRequest[]) => {
-  const createdByHeading = chalk.bold("Created by you:");
-  const prsCreatedByYouText =
-    prsCreatedByYou.length === 0
-      ? `${indent(2)}${chalk.dim("No PRs created by you")}`
-      : prsCreatedByYou
-          .map((pr) => `${indent(2)}${formatPrText(pr)}`)
-          .join("\n");
+const formatPrTexts = ({
+  prs,
+  title,
+  noResultMessage,
+}: {
+  prs: PullRequest[];
+  title: string;
+  noResultMessage: string;
+}) => {
+  const formattedBody =
+    prs.length === 0
+      ? `${indent(2)}${chalk.dim(noResultMessage)}`
+      : prs?.map(formatPrText).join("\n");
 
   return {
-    createdByHeading,
-    prsCreatedByYou,
-    prsCreatedByYouText,
+    title,
+    body: formattedBody,
   };
 };
 
-export const formattedTextsRequestingReview = (
-  prsRequestingReview: PullRequest[],
-  labels: string[]
-) => {
-  const requestingReviewHeading = chalk.bold(
-    "Requesting a code review from you:"
-  );
-  const prsRequestingReviewFilteredOnLabels = prsRequestingReview.filter(
-    (pr) =>
-      !labels || pr.labels.some((label) => labels.includes(label.toLowerCase()))
-  );
-  const prsRequestingReviewText =
-    prsRequestingReviewFilteredOnLabels.length === 0
-      ? `${indent(2)}${chalk.dim("No PRs requesting review from you")}`
-      : prsRequestingReviewFilteredOnLabels
-          .map((pr) => `${indent(2)}${formatPrText(pr)}`)
-          .join("\n");
+export const renderOutput = ({
+  myPrs,
+  requestingReviewPrs,
+  reviewedPrs,
+  showReviewed,
+}: {
+  myPrs: PullRequest[];
+  requestingReviewPrs: PullRequest[];
+  reviewedPrs: PullRequest[];
+  showReviewed: boolean;
+}) => {
+  const terminalWidth = process.stdout.columns;
 
-  return {
-    requestingReviewHeading,
-    prsRequestingReview,
-    prsRequestingReviewText,
+  const getColumnWidth = (totalWidth: number) => {
+    if (totalWidth > 100) {
+      return totalWidth / 2;
+    } else {
+      return totalWidth;
+    }
   };
-};
 
-export const formattedTextsInvolvingYou = (
-  fetchPrSearchResponses: PullRequestInvolved[][] | undefined,
-  prsCreatedByYou: PullRequest[],
-  prsRequestingReview: PullRequest[]
-) => {
-  const invlovedHeading = fetchPrSearchResponses
-    ? chalk.bold("Involves you:")
-    : "";
-  const prsInvolvingYou = (fetchPrSearchResponses?.flat() ?? []).filter(
-    (pr) =>
-      !prsCreatedByYou.some(
-        (pullRequest) => pullRequest.number === pr.number
-      ) &&
-      !prsRequestingReview.some(
-        (pullRequest) => pullRequest.number === pr.number
-      )
-  );
-  const prsInvolvingYouText =
-    prsInvolvingYou.length === 0
-      ? `${indent(2)}${chalk.dim("No PRs involving you")}`
-      : prsInvolvingYou
-          ?.map((pr) => `${indent(2)}${formatPrTitle(pr).title}`)
-          .join("\n");
+  const columnWidth = getColumnWidth(terminalWidth);
 
-  return {
-    invlovedHeading,
-    prsInvolvingYouText,
-    prsInvolvingYou,
+  // Created by you
+  const { title: createdByHeading, body: prsCreatedByYouBody } = formatPrTexts({
+    prs: myPrs,
+    title: "Created by you",
+    noResultMessage: "No PRs created by you",
+  });
+
+  // Requesting review
+  const { title: requestingReviewHeading, body: prsRequestingReviewBody } =
+    formatPrTexts({
+      prs: requestingReviewPrs,
+      title: "Requesting a code review from you",
+      noResultMessage: "No PRs requesting review from you",
+    });
+
+  // Reviewed by you
+  const { title: reviewedByYouHeading, body: prsReviewedByYouBody } =
+    formatPrTexts({
+      prs: reviewedPrs,
+      title: "Reviwed by you",
+      noResultMessage: "No open PRs reviewed by you",
+    });
+
+  const boxenStyles: Options = {
+    padding: 1,
+    borderColor: "magenta",
+    borderStyle: "round",
+    fullscreen: () => [columnWidth, 0],
   };
+
+  let createdByYouOutput = boxen(prsCreatedByYouBody, {
+    ...boxenStyles,
+    title: createdByHeading,
+  });
+
+  const requestingReviewOutput = boxen(prsRequestingReviewBody, {
+    ...boxenStyles,
+    title: requestingReviewHeading,
+  });
+
+  const reviwedByYouOutput = boxen(prsReviewedByYouBody, {
+    ...boxenStyles,
+    title: reviewedByYouHeading,
+  });
+
+  if (showReviewed) {
+    createdByYouOutput = `${createdByYouOutput}\n${reviwedByYouOutput}`;
+  }
+
+  // Create table data
+  const tableData = [[requestingReviewOutput, createdByYouOutput]];
+
+  // Render table
+  const output = terminalColumns(tableData, (stdoutColumns) => {
+    if (stdoutColumns > 100) {
+      return [{ width: columnWidth }, { width: columnWidth }];
+    } else {
+      return [{ width: columnWidth }, { width: columnWidth }];
+    }
+  });
+
+  console.log(output);
 };

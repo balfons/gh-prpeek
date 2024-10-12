@@ -4,23 +4,21 @@ import { program } from "commander";
 import ora from "ora";
 import { createServer } from "node:net";
 import {
-  formatReposTitle,
+  formatRepoNames,
   formattedDateText,
-  formattedTextsCreatedByYou,
-  formattedTextsInvolvingYou,
-  formattedTextsRequestingReview,
   getUpgradeMessage,
+  renderOutput,
 } from "./src/utils/output.util";
 import {
-  fetchInvolvedPrs,
   fetchLatestRelease,
-  fetchPrStatus,
+  fetchMyPullRequests,
+  fetchRequestingReviewPullRequests,
+  fetchReviewedPrs,
 } from "./src/commands";
 import packageJson from "./package.json";
 import {
   clearScreen,
   commaSeparatedList,
-  disableAlternateBuffer,
   enableAlternateBuffer,
 } from "./src/utils/terminal.util";
 import {
@@ -30,6 +28,7 @@ import {
   notifyNewPrs,
 } from "./src/notify";
 import { PullRequest } from "./src/models/PullRequest";
+import { registerProcessEvents } from "./src/processEvents";
 
 program
   .version(packageJson.version)
@@ -45,7 +44,7 @@ program
     "Notification when a new PR is added or when one of your PRs becomes mergable",
     false
   )
-  .option("--involved", "Show additional PRs where you are involved", false)
+  .option("--reviewed", "Show PRs that you have reviewed", false)
   .option(
     "-l, --labels <items>",
     "Only show pull requests that needs review from you with any of the specified labels",
@@ -54,17 +53,17 @@ program
 
 program.parse();
 
-const { repos, interval, notify, labels, involved } = program.opts<{
+const { repos, interval, notify, labels, reviewed } = program.opts<{
   repos: string[];
   interval: number;
   notify: boolean;
-  labels: string[];
-  involved: boolean;
+  labels?: string[];
+  reviewed: boolean;
 }>();
 
 const intervalAsMillis = Number(interval * 1000);
 
-const reposTitle = formatReposTitle(repos);
+const repoNames = formatRepoNames(repos);
 
 if (isNaN(intervalAsMillis)) {
   program.error("Interval must be a number");
@@ -72,29 +71,25 @@ if (isNaN(intervalAsMillis)) {
 
 // Spinner
 const spinner = ora({
-  suffixText: "Updating pull requests",
+  suffixText: `Fetching pull requests from:\n   ${repoNames.join(", ")}`,
   color: "magenta",
 });
 
 let previousPrs: PullRequest[] = [];
-let yourPreviousPrs: PullRequest[] = [];
+let myPreviousPrs: PullRequest[] = [];
+
+let myPrs: PullRequest[] = [];
+let requestingReviewPrs: PullRequest[] = [];
+let reviewedPrs: PullRequest[] = [];
 
 enableAlternateBuffer();
 clearScreen();
 
-const server = createServer().listen(); // Keep script running
+// Keep script running
+const server = createServer().listen();
 
-[`SIGINT`, `SIGUSR1`, `SIGUSR2`, `uncaughtException`, `SIGTERM`].forEach(
-  (eventType) => {
-    process.on(eventType, () => {
-      spinner.stop();
-      server.close();
-      disableAlternateBuffer();
-      console.log(eventType);
-      process.exit();
-    });
-  }
-);
+// Register process event to handle errors and exiting
+registerProcessEvents(server, spinner);
 
 const runProgram = async (firstRun: boolean) => {
   if (firstRun) {
@@ -109,87 +104,61 @@ const runProgram = async (firstRun: boolean) => {
           borderStyle: "round",
         })
       );
-      const result = prompt("Press Enter to skip...");
-      console.log(result);
+      prompt("Press Enter to skip...");
       clearScreen();
     }
   }
 
   spinner.start();
 
-  const prStatusPromises = repos.map(fetchPrStatus);
-  const involvedPromises = involved ? repos.map(fetchInvolvedPrs) : [];
+  const prsCreatedByMePromises = repos.map(fetchMyPullRequests);
+  const prsRequestingReviewPromises = repos.map((repo) =>
+    fetchRequestingReviewPullRequests(repo, labels ?? [])
+  );
+  const reviewedPromises = reviewed ? repos.map(fetchReviewedPrs) : [];
 
-  try {
-    const [fetchPrStatusResponses, fetchPrSearchResponses] = await Promise.all([
-      Promise.all(prStatusPromises),
-      Promise.all(involvedPromises),
-    ]);
+  [myPrs, requestingReviewPrs, reviewedPrs] = await Promise.all([
+    (await Promise.all(prsCreatedByMePromises)).flat(),
+    (await Promise.all(prsRequestingReviewPromises)).flat(),
+    (await Promise.all(reviewedPromises)).flat(),
+  ]);
 
-    spinner.stop();
-    clearScreen();
+  spinner.stop();
+  clearScreen();
 
-    // Created by you
-    const { createdByHeading, prsCreatedByYou, prsCreatedByYouText } =
-      formattedTextsCreatedByYou(
-        fetchPrStatusResponses.flatMap((response) => response.createdBy)
-      );
+  const date = chalk.dim(`Last updated: ${formattedDateText()}`);
 
-    // Requesting review
-    const {
-      requestingReviewHeading,
-      prsRequestingReview,
-      prsRequestingReviewText,
-    } = formattedTextsRequestingReview(
-      fetchPrStatusResponses.flatMap((response) => response.needsReview),
-      labels
-    );
+  const newPrs = [...myPrs, ...requestingReviewPrs];
 
-    // Involving you
-    const { invlovedHeading, prsInvolvingYouText } = formattedTextsInvolvingYou(
-      fetchPrSearchResponses,
-      prsCreatedByYou,
-      prsRequestingReview
-    );
-
-    const date = chalk.dim(`Last updated: ${formattedDateText()}`);
-
-    let output = `${createdByHeading}\n${prsCreatedByYouText}\n\n${requestingReviewHeading}\n${prsRequestingReviewText}`;
-
-    if (involved) {
-      output = `${output}\n\n${invlovedHeading}\n${prsInvolvingYouText}`;
-    }
-
-    output = `${output}\n\n${date}`;
-
-    const prs = [...prsCreatedByYou, ...prsRequestingReview];
-
-    if (!firstRun && notify) {
-      notifyNewPrs(previousPrs, prs);
-      notifyMergablePrs(yourPreviousPrs, prsCreatedByYou);
-      notifyFailingePrs(yourPreviousPrs, prsCreatedByYou);
-      notifyNewCommentsPrs(yourPreviousPrs, prsCreatedByYou);
-    }
-
-    previousPrs = prs;
-    yourPreviousPrs = prsCreatedByYou;
-
-    console.log(
-      boxen(output, {
-        padding: 1,
-        borderColor: "magenta",
-        borderStyle: "round",
-        title: reposTitle,
-      })
-    );
-
-    setTimeout(() => runProgram(false), intervalAsMillis).unref(); // unref to not block main thread
-  } catch (e) {
-    spinner.stop();
-    server.close();
-    disableAlternateBuffer();
-    throw e;
+  if (!firstRun && notify) {
+    notifyNewPrs(previousPrs, newPrs);
+    notifyMergablePrs(myPreviousPrs, myPrs);
+    notifyFailingePrs(myPreviousPrs, myPrs);
+    notifyNewCommentsPrs(myPreviousPrs, myPrs);
   }
+
+  previousPrs = newPrs;
+  myPreviousPrs = myPrs;
+
+  renderOutput({
+    myPrs,
+    requestingReviewPrs,
+    reviewedPrs,
+    showReviewed: reviewed,
+  });
+  console.log(date);
+
+  setTimeout(() => runProgram(false), intervalAsMillis).unref(); // unref to not block main thread
 };
 
-runProgram(true);
+runProgram(true).then(() => {
+  process.stdout.on("resize", () => {
+    clearScreen();
+    renderOutput({
+      myPrs,
+      requestingReviewPrs,
+      reviewedPrs,
+      showReviewed: reviewed,
+    });
+  });
+});

@@ -1,7 +1,7 @@
 interface StatusCheckRollup {
   __typename: string;
   completedAt: string;
-  conclusion: "SUCCESS" | "FAILURE" | "NEUTRAL";
+  conclusion: "SUCCESS" | "FAILURE" | "NEUTRAL" | "SKIPPED";
   detailsUrl: string;
   name: string;
   startedAt: string;
@@ -40,18 +40,6 @@ interface Review {
     | "PENDING";
 }
 
-export interface GitHubSearchPullRequest {
-  author: Author;
-  title: string;
-  number: number;
-  url: string;
-  isDraft: boolean;
-  labels: Label[];
-  repository: {
-    name: string;
-    nameWithOwner: string;
-  };
-}
 export interface GitHubPullRequest {
   title: string;
   url: string;

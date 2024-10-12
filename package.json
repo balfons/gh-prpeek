@@ -2,7 +2,7 @@
   "name": "gh-prpeek",
   "module": "index.ts",
   "type": "module",
-  "version": "3.0.1",
+  "version": "4.0.0",
   "scripts": {
     "start": "bun run index.ts",
     "compile": "bun build ./index.ts --compile --outfile dist/prpeek",
@@ -10,7 +10,7 @@
   },
   "devDependencies": {
     "@types/node-notifier": "^8.0.5",
-    "bun-types": "latest"
+    "bun-types": "1.1.30"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
@@ -21,6 +21,7 @@
     "commander": "^12.1.0",
     "node-notifier": "^10.0.1",
     "ora": "^8.1.0",
+    "terminal-columns": "^1.4.1",
     "terminal-link": "^3.0.0"
   }
 }

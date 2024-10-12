@@ -1,19 +1,8 @@
-import { prSearchFields, prStatusFields } from "../commands";
-import { GitHubPullRequest, GitHubSearchPullRequest } from "./GitHub";
+import { prFields } from "../commands";
+import { GitHubPullRequest } from "./GitHub";
 
-type PullRequestStatusResponseFields = (typeof prStatusFields)[number];
-export type PullRequestStatusResponse = Pick<
+type PullRequestStatusResponseFields = (typeof prFields)[number];
+export type PullRequestResponse = Pick<
   GitHubPullRequest,
   PullRequestStatusResponseFields
 >;
-
-type PullRequestSearchResponseFields = (typeof prSearchFields)[number];
-export type PullRequestSearchResponse = Pick<
-  GitHubSearchPullRequest,
-  PullRequestSearchResponseFields
->;
-
-export interface PullRequestStatusResponses {
-  createdBy: PullRequestStatusResponse[];
-  needsReview: PullRequestStatusResponse[];
-}

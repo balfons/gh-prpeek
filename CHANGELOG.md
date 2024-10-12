@@ -1,13 +1,18 @@
 # Changelog
 
-## 3.0.1
+## 4.0.0 - 2024-10-12
 
 ### Added 
 - Notification when new version of prpeek is available.
+- Responsive two column layout
+- Reviewed by you section
 
 ### Fixed
 - Don't wait for async operations before exiting program.
 
+### Removed
+- Remove `--involved` flag in favour of `--reviewed`.
+- Remove "Involves you" section in favour of "Reviewed by you" 
 
 ## 3.0.0 - 2024-09-20
 

@@ -1,13 +1,15 @@
-import { PullRequestStatusResponse } from "./GitHubResponse";
+import { PullRequestResponse } from "./GitHubResponse";
 import { CheckStatus, PullRequest } from "./PullRequest";
 
-const getCheckStatus = (pr: PullRequestStatusResponse): CheckStatus => {
+const getCheckStatus = (pr: PullRequestResponse): CheckStatus => {
   const allChecksPassing = pr.statusCheckRollup.every(
     (statusCheck) =>
       statusCheck.status === "COMPLETED" &&
       (statusCheck.conclusion === "SUCCESS" ||
-        statusCheck.conclusion === "NEUTRAL")
+        statusCheck.conclusion === "NEUTRAL" ||
+        statusCheck.conclusion === "SKIPPED")
   );
+
   if (allChecksPassing) {
     return CheckStatus.SUCCESSFUL;
   }
@@ -16,7 +18,7 @@ const getCheckStatus = (pr: PullRequestStatusResponse): CheckStatus => {
     (statusCheck) => statusCheck.status === "IN_PROGRESS"
   );
   if (someArePending) {
-    return CheckStatus.SUCCESSFUL;
+    return CheckStatus.PENDING;
   }
 
   const someAreFailing = pr.statusCheckRollup.some(
@@ -30,7 +32,7 @@ const getCheckStatus = (pr: PullRequestStatusResponse): CheckStatus => {
   return CheckStatus.NONE;
 };
 
-const from = (pr: PullRequestStatusResponse): PullRequest => {
+const from = (pr: PullRequestResponse): PullRequest => {
   const title = pr.title;
   const number = pr.number;
   const additions = pr.additions;
