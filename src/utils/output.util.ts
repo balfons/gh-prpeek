@@ -196,12 +196,16 @@ export const renderOutput = ({
   myPrs,
   requestingReviewPrs,
   reviewedPrs,
+  mentionedPrs,
   showReviewed,
+  showMentioned,
 }: {
   myPrs: PullRequest[];
   requestingReviewPrs: PullRequest[];
   reviewedPrs: PullRequest[];
+  mentionedPrs: PullRequest[];
   showReviewed: boolean;
+  showMentioned: boolean;
 }) => {
   const terminalWidth = process.stdout.columns;
 
@@ -238,6 +242,14 @@ export const renderOutput = ({
       noResultMessage: "No open PRs reviewed by you",
     });
 
+  // Mentions you
+  const { title: mentionsYouHeading, body: prsMentionsYouBody } =
+    formatPrTexts({
+      prs: mentionedPrs,
+      title: "Mentions you",
+      noResultMessage: "No open PRs mentioning you",
+    });
+
   const boxenStyles: Options = {
     padding: 1,
     borderColor: "magenta",
@@ -260,8 +272,17 @@ export const renderOutput = ({
     title: reviewedByYouHeading,
   });
 
+  const mentionsYouOutput = boxen(prsMentionsYouBody, {
+    ...boxenStyles,
+    title: mentionsYouHeading,
+  });
+
   if (showReviewed) {
     createdByYouOutput = `${createdByYouOutput}\n${reviwedByYouOutput}`;
+  }
+
+  if (showMentioned) {
+    createdByYouOutput = `${createdByYouOutput}\n${mentionsYouOutput}`;
   }
 
   // Create table data

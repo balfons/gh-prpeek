@@ -37,6 +37,17 @@ export const prFields = [
   "mergeStateStatus",
 ] as const;
 
+export const fetchMentionedPrs = async (repo: string) => {
+  const command = $`gh pr list --search "mentions:@me -author:@me " --repo $REPO --json $FIELDS`;
+
+  const pullRequests = await makeGhJsonRequest<PullRequestResponse[]>(command, {
+    REPO: repo,
+    FIELDS: prFields.join(","),
+  });
+
+  return pullRequests.map(PullRequestFactory.from);
+};
+
 export const fetchReviewedPrs = async (repo: string) => {
   const command = $`gh pr list --search "reviewed-by:@me -author:@me " --repo $REPO --json $FIELDS`;
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 4.1.0 - 2024-12-07
+
+### Added 
+- Added `--mentioned` flag
+
 ## 4.0.0 - 2024-10-12
 
 ### Added 

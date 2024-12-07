@@ -11,6 +11,7 @@ import {
 } from "./src/utils/output.util";
 import {
   fetchLatestRelease,
+  fetchMentionedPrs,
   fetchMyPullRequests,
   fetchRequestingReviewPullRequests,
   fetchReviewedPrs,
@@ -45,6 +46,7 @@ program
     false
   )
   .option("--reviewed", "Show PRs that you have reviewed", false)
+  .option("--mentioned", "Show PRs that mentions you", false)
   .option(
     "-l, --labels <items>",
     "Only show pull requests that needs review from you with any of the specified labels",
@@ -53,10 +55,11 @@ program
 
 program.parse();
 
-const { repos, interval, notify, labels, reviewed } = program.opts<{
+const { repos, interval, notify, labels, reviewed, mentioned } = program.opts<{
   repos: string[];
   interval: number;
   notify: boolean;
+  mentioned: boolean;
   labels?: string[];
   reviewed: boolean;
 }>();
@@ -81,6 +84,7 @@ let myPreviousPrs: PullRequest[] = [];
 let myPrs: PullRequest[] = [];
 let requestingReviewPrs: PullRequest[] = [];
 let reviewedPrs: PullRequest[] = [];
+let mentionedPrs: PullRequest[] = [];
 
 enableAlternateBuffer();
 clearScreen();
@@ -116,11 +120,13 @@ const runProgram = async (firstRun: boolean) => {
     fetchRequestingReviewPullRequests(repo, labels ?? [])
   );
   const reviewedPromises = reviewed ? repos.map(fetchReviewedPrs) : [];
+  const mentionedPromises = mentioned ? repos.map(fetchMentionedPrs) : [];
 
-  [myPrs, requestingReviewPrs, reviewedPrs] = await Promise.all([
+  [myPrs, requestingReviewPrs, reviewedPrs, mentionedPrs] = await Promise.all([
     (await Promise.all(prsCreatedByMePromises)).flat(),
     (await Promise.all(prsRequestingReviewPromises)).flat(),
     (await Promise.all(reviewedPromises)).flat(),
+    (await Promise.all(mentionedPromises)).flat(),
   ]);
 
   spinner.stop();
@@ -144,7 +150,9 @@ const runProgram = async (firstRun: boolean) => {
     myPrs,
     requestingReviewPrs,
     reviewedPrs,
+    mentionedPrs,
     showReviewed: reviewed,
+    showMentioned: mentioned,
   });
   console.log(date);
 
@@ -158,7 +166,9 @@ runProgram(true).then(() => {
       myPrs,
       requestingReviewPrs,
       reviewedPrs,
+      mentionedPrs,
       showReviewed: reviewed,
+      showMentioned: mentioned,
     });
   });
 });
