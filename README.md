@@ -19,7 +19,7 @@ gh extension upgrade balfons/gh-prpeek
 
 **Example**
 ```bash
-gh prpeek --repos balfons/gh-prpeek,oven-sh/bun --notify --interval 20 --labels bug,feature --involved
+gh prpeek --repos balfons/gh-prpeek,oven-sh/bun --notify --interval 20 --labels bug,feature --reviewed --mentioned
 ```
 
 **Options**
