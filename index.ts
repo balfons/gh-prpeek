@@ -30,6 +30,7 @@ import {
 } from "./src/notify";
 import { PullRequest } from "./src/models/PullRequest";
 import { registerProcessEvents } from "./src/processEvents";
+import { Flags } from "./src/models/Flags";
 
 program
   .version(packageJson.version)
@@ -47,6 +48,7 @@ program
   )
   .option("--reviewed", "Show PRs that you have reviewed", false)
   .option("--mentioned", "Show PRs that mentions you", false)
+  .option("--hide-checks", "Hide result of failing individual checks", false)
   .option(
     "-l, --labels <items>",
     "Only show pull requests that needs review from you with any of the specified labels",
@@ -55,14 +57,8 @@ program
 
 program.parse();
 
-const { repos, interval, notify, labels, reviewed, mentioned } = program.opts<{
-  repos: string[];
-  interval: number;
-  notify: boolean;
-  mentioned: boolean;
-  labels?: string[];
-  reviewed: boolean;
-}>();
+const { repos, interval, notify, labels, reviewed, mentioned, hideChecks } =
+  program.opts<Flags>();
 
 const intervalAsMillis = Number(interval * 1000);
 
@@ -153,6 +149,7 @@ const runProgram = async (firstRun: boolean) => {
     mentionedPrs,
     showReviewed: reviewed,
     showMentioned: mentioned,
+    hideChecks,
   });
   console.log(date);
 
@@ -169,6 +166,7 @@ runProgram(true).then(() => {
       mentionedPrs,
       showReviewed: reviewed,
       showMentioned: mentioned,
+      hideChecks,
     });
   });
 });

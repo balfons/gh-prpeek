@@ -5,11 +5,11 @@ import boxen, { Options } from "boxen";
 import terminalColumns from "terminal-columns";
 
 const indent = (amount: number) => {
-  return Array.from(Array(amount)).reduce(
-    (totalIndent) => `${totalIndent}${" "}`,
-    ""
-  );
+  return chalk.hidden(Array.from(Array(amount)).fill("-").join(""));
 };
+
+// Non-Break sentence
+const nbs = (sentence: string): string => sentence.split(" ").join("\u{00A0}");
 
 export const getUpgradeMessage = (
   currentVersion: string,
@@ -23,16 +23,13 @@ export const getUpgradeMessage = (
 export const formatRepoNames = (repos: string[]): string[] =>
   repos.map((repo) => repo.split("/").pop()).filter((r) => r !== undefined);
 
-const formatPrNumber = (pr: PullRequest) => {
+const formatPrNumber = (pr: PullRequest): string => {
   const prNumberText = `#${pr.number}`;
   const prNumber = pr.isDraft
     ? chalk.dim(prNumberText)
     : chalk.green(prNumberText);
 
-  return {
-    prNumber,
-    prNumberLength: prNumberText.length + 1,
-  };
+  return prNumber;
 };
 
 const formatPrTitle = (pr: PullRequest) => {
@@ -59,45 +56,75 @@ const getMergeableStateText = (pr: PullRequest) => {
   }
 };
 
-export const formatPrText = (pr: PullRequest) => {
-  const { prNumber: number, prNumberLength: infoIndent } = formatPrNumber(pr);
+export const formatPrText = (
+  pr: PullRequest,
+  hideChecks: boolean,
+  columnWidth: number,
+  containerWidth: number
+) => {
+  const number = formatPrNumber(pr);
   const title = formatPrTitle(pr);
   const author = formatPrAuthor(pr);
   const repo = formatPrRepo(pr);
-  const additionsAndDeletions = getAdditionsDeletionsText(pr);
-  const statusCheck = getStatusCheckText(pr);
-  const comments = getCommentsText(pr);
-  const reviewDecision = getReviewDecisionText(pr);
-  const mergeableState = getMergeableStateText(pr);
-  const failedChecksText = getFailedChecksText(pr, infoIndent);
+  const additionsAndDeletions = nbs(getAdditionsDeletionsText(pr));
+  const { statusCheckText, statusCheckSymbol } = getStatusCheckText(pr);
+  const comments = nbs(getCommentsText(pr));
+  const reviewDecision = nbs(getReviewDecisionText(pr));
+  const mergeableState = nbs(getMergeableStateText(pr));
+  const failedChecksText = nbs(getFailedChecksText(pr));
 
-  const titleRow = `${number} ${title}`;
-  const infoRow1 = `${author} ${repo} ${additionsAndDeletions}`;
-  const infoRow2 = `${statusCheck} ${comments} ${reviewDecision} ${mergeableState}`;
+  const indent1 = indent(columnWidth + 2);
+  const indent2 = indent(columnWidth);
 
-  let output = `${titleRow}\n${indent(infoIndent)}${infoRow1}\n${indent(
-    infoIndent - 2
-  )}${infoRow2}`;
+  const tableData = [
+    [number, title],
+    [indent1, `${author} ${repo} ${additionsAndDeletions}`],
+    [
+      `${indent2}${statusCheckSymbol}`,
+      `${statusCheckText} ${comments} ${reviewDecision} ${mergeableState}`,
+    ],
+  ];
 
-  if (failedChecksText) {
-    output = `${output}\n${indent(infoIndent)}${failedChecksText}`;
+  if (!hideChecks && failedChecksText) {
+    tableData.push([indent1, failedChecksText]);
   }
 
-  return output;
+  const numberColumn = columnWidth + 2; // PR number + # + " "
+  const infoColumn = containerWidth - numberColumn - 8; // 8 = Boxen adds 1 character for box border + 3 characters padding on each side
+
+  return terminalColumns(tableData, [
+    { width: numberColumn },
+    { width: infoColumn },
+  ]);
 };
 
-const getStatusCheckText = (pr: PullRequest) => {
+const getStatusCheckText = (
+  pr: PullRequest
+): { statusCheckText: string; statusCheckSymbol: string } => {
   switch (pr.checkStatus) {
     case CheckStatus.SUCCESSFUL:
-      return chalk.green("✓ Checks passing");
+      return {
+        statusCheckText: chalk.green("Checks passing"),
+        statusCheckSymbol: chalk.green("✓"),
+      };
     case CheckStatus.PENDING:
-      return chalk.yellow("- Checks pending");
+      return {
+        statusCheckText: chalk.yellow("Checks pending"),
+        statusCheckSymbol: chalk.yellow("-"),
+      };
     case CheckStatus.FAILURE:
-      return chalk.red(
-        `× ${pr.failingChecks.length}/${pr.totalChecksCount} checks failing`
-      );
+      return {
+        statusCheckText: chalk.red(
+          terminalLink(
+            `${pr.failingChecks.length}/${pr.totalChecksCount} checks failing`,
+            `${pr.url}/checks`,
+            { fallback: false }
+          )
+        ),
+        statusCheckSymbol: chalk.red("×"),
+      };
     case CheckStatus.NONE:
-      return " ";
+      return { statusCheckText: "", statusCheckSymbol: "" };
   }
 };
 
@@ -107,7 +134,7 @@ const getCommentsText = (pr: PullRequest) => {
   return chalk.dim(`◆ ${count} ${text}`);
 };
 
-const getFailedChecksText = (pr: PullRequest, indentAmount: number) => {
+const getFailedChecksText = (pr: PullRequest) => {
   const failedChecks = pr.failingChecks;
 
   if (failedChecks.length > 0) {
@@ -117,13 +144,13 @@ const getFailedChecksText = (pr: PullRequest, indentAmount: number) => {
           terminalLink(check.name, check.url, { fallback: false })
         )
       )
-      .join(`\n${indent(indentAmount)}`)}`;
+      .join(`\n`)}`;
   }
 
   return "";
 };
 
-const getReviewDecisionText = (pr: PullRequest) => {
+const getReviewDecisionText = (pr: PullRequest): string => {
   if (pr.reviewDecision === "REVIEW_REQUIRED") {
     return chalk.yellow("• Review required");
   }
@@ -141,6 +168,8 @@ const getReviewDecisionText = (pr: PullRequest) => {
   if (pr.isReviewRequested) {
     return chalk.magenta("• Review requested");
   }
+
+  return "";
 };
 
 const getAdditionsDeletionsText = (pr: PullRequest) => {
@@ -176,15 +205,27 @@ const formatPrTexts = ({
   prs,
   title,
   noResultMessage,
+  hideChecks,
+  containerWidth,
 }: {
   prs: PullRequest[];
   title: string;
   noResultMessage: string;
+  hideChecks: boolean;
+  containerWidth: number;
 }) => {
+  const prNumberColumnWidth = Math.max(
+    ...prs.map((pr) => String(pr.number).length)
+  );
+
   const formattedBody =
     prs.length === 0
-      ? `${indent(2)}${chalk.dim(noResultMessage)}`
-      : prs?.map(formatPrText).join("\n");
+      ? chalk.dim(noResultMessage)
+      : prs
+          .map((pr) =>
+            formatPrText(pr, hideChecks, prNumberColumnWidth, containerWidth)
+          )
+          .join("\n");
 
   return {
     title,
@@ -199,6 +240,7 @@ export const renderOutput = ({
   mentionedPrs,
   showReviewed,
   showMentioned,
+  hideChecks,
 }: {
   myPrs: PullRequest[];
   requestingReviewPrs: PullRequest[];
@@ -206,6 +248,7 @@ export const renderOutput = ({
   mentionedPrs: PullRequest[];
   showReviewed: boolean;
   showMentioned: boolean;
+  hideChecks: boolean;
 }) => {
   const terminalWidth = process.stdout.columns;
 
@@ -224,6 +267,8 @@ export const renderOutput = ({
     prs: myPrs,
     title: "Created by you",
     noResultMessage: "No PRs created by you",
+    hideChecks,
+    containerWidth: columnWidth,
   });
 
   // Requesting review
@@ -232,6 +277,8 @@ export const renderOutput = ({
       prs: requestingReviewPrs,
       title: "Requesting a code review from you",
       noResultMessage: "No PRs requesting review from you",
+      hideChecks,
+      containerWidth: columnWidth,
     });
 
   // Reviewed by you
@@ -240,15 +287,20 @@ export const renderOutput = ({
       prs: reviewedPrs,
       title: "Reviwed by you",
       noResultMessage: "No open PRs reviewed by you",
+      hideChecks,
+      containerWidth: columnWidth,
     });
 
   // Mentions you
-  const { title: mentionsYouHeading, body: prsMentionsYouBody } =
-    formatPrTexts({
+  const { title: mentionsYouHeading, body: prsMentionsYouBody } = formatPrTexts(
+    {
       prs: mentionedPrs,
       title: "Mentions you",
       noResultMessage: "No open PRs mentioning you",
-    });
+      hideChecks,
+      containerWidth: columnWidth,
+    }
+  );
 
   const boxenStyles: Options = {
     padding: 1,
@@ -289,13 +341,10 @@ export const renderOutput = ({
   const tableData = [[requestingReviewOutput, createdByYouOutput]];
 
   // Render table
-  const output = terminalColumns(tableData, (stdoutColumns) => {
-    if (stdoutColumns > 100) {
-      return [{ width: columnWidth }, { width: columnWidth }];
-    } else {
-      return [{ width: columnWidth }, { width: columnWidth }];
-    }
-  });
+  const output = terminalColumns(tableData, [
+    { width: columnWidth },
+    { width: columnWidth },
+  ]);
 
   console.log(output);
 };

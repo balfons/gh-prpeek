@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.2.0 - 
+
+### Added
+- Added `--hide-checks` flag to conserve space when there is a lot of individual checks.
+- Make the checks summary linkable when failing.
+
+### Fixed
+- Pull request text layout on smaller screens
+
 ## 4.1.0 - 2024-12-07
 
 ### Added 
