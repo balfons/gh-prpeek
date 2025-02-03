@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.2.0 - 
+## 4.2.0 - 2025-02-03
 
 ### Added
 - Added `--hide-checks` flag to conserve space when there is a lot of individual checks.
