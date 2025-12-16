@@ -1,4 +1,11 @@
 # Changelog
+## v5.0.2 - 2025-12-16
+
+### Fixed
+- Fix for the program stalling when exiting
+- Fix for notifications showing up when the initial PR fetch fails and the next one is successful
+- Fix for TextBuffer error when exiting while spinner is active
+
 
 ## v5.0.1 - 2025-12-16
 

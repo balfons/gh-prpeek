@@ -76,6 +76,7 @@ let latestRelease: string | undefined;
 let lastUpdatedDate: string = "Updating...";
 
 let isLoading = false;
+let hasHadFirstSuccessfulLoad = false;
 
 const { repos, interval, notify, labels, reviewed, mentioned, hideChecks } =
   program.opts<Flags>();
@@ -95,6 +96,8 @@ let myPrs: PullRequest[] = [];
 let requestingReviewPrs: PullRequest[] = [];
 let reviewedPrs: PullRequest[] = [];
 let mentionedPrs: PullRequest[] = [];
+
+let timeout: Timer | undefined = undefined;
 
 const createRenderables = async (renderer: CliRenderer) => {
   mainContainer = new ScrollBoxRenderable(renderer, {
@@ -207,6 +210,11 @@ const createRenderables = async (renderer: CliRenderer) => {
 
 const runProgram = async (firstRun: boolean) => {
   if (isLoading) return;
+
+  if (timeout) {
+    clearTimeout(timeout);
+  }
+
   if (firstRun && latestRelease && latestRelease !== packageJson.version) {
     renderer.root.add(newReleaseContainer);
   }
@@ -240,7 +248,7 @@ const runProgram = async (firstRun: boolean) => {
     console.log(`Fetched a total of ${allPrs.length} pull requests.`);
     const newPrs = [...myPrs, ...requestingReviewPrs];
 
-    if (!firstRun && notify) {
+    if (!firstRun && notify && hasHadFirstSuccessfulLoad) {
       notifyNewPrs(previousPrs, newPrs);
       notifyMergablePrs(myPreviousPrs, myPrs);
       notifyFailingePrs(myPreviousPrs, myPrs);
@@ -259,6 +267,7 @@ const runProgram = async (firstRun: boolean) => {
 
     lastUpdatedDate = formattedDateText();
     isLoading = false;
+    hasHadFirstSuccessfulLoad = true;
     lastUpdatedSpinnerText.stopSpinner(lastUpdatedDate);
 
     tabMenu.focus();
@@ -269,7 +278,8 @@ const runProgram = async (firstRun: boolean) => {
     lastUpdatedSpinnerText.stopSpinnerWithError(lastUpdatedDate);
   }
 
-  setTimeout(() => runProgram(false), intervalAsMillis).unref();
+  timeout = setTimeout(() => runProgram(false), intervalAsMillis);
+  timeout.unref();
 };
 
 const setTabOptions = ({
@@ -338,6 +348,7 @@ const renderer = await createCliRenderer({
     sizePercent: 50,
     startInDebugMode: true,
   },
+  onDestroy: () => process.exit(0), // Until bun supports aborting shell promises: https://github.com/oven-sh/bun/issues/18247
 });
 
 await setTerminalColorsFromTheme(renderer);

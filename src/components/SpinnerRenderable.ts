@@ -37,20 +37,27 @@ export class SpinnerRenderable extends TextRenderable {
       text
     )}${dim("]")}`;
     this.spinnerInterval = setInterval(() => {
+      if (this.isDestroyed) return;
       this.spinnerIndex = (this.spinnerIndex + 1) % this.spinnerFrames.length;
       this.content = t`${dim("[")}${cyan(
         this.spinnerFrames[this.spinnerIndex]
       )} ${text}${dim("]")}`;
-    }, 80);
+    }, 80).unref();
   }
 
   stopSpinner(text: string) {
+    if (this.isDestroyed) return;
     this.clearSpinner();
     this.content = t`${dim("[")}${green("✓")} ${dim(text)}${dim("]")}`;
   }
 
   stopSpinnerWithError(text: string) {
+    if (this.isDestroyed) return;
     this.clearSpinner();
     this.content = t`${dim("[")}${red("✗")} ${dim(text)}${dim("]")}`;
+  }
+
+  destroy(): void {
+    this.clearSpinner();
   }
 }

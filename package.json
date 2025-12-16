@@ -2,11 +2,10 @@
   "name": "gh-prpeek",
   "module": "index.ts",
   "type": "module",
-  "version": "v5.0.1",
+  "version": "v5.0.2",
   "scripts": {
     "start": "bun run index.ts",
-    "compile": "bun build ./index.ts --compile --outfile dist/prpeek",
-    "release": "bun build ./index.ts --compile --target=$(echo $TARGET) --outfile dist/$(echo $FILE_PATH)"
+    "compile": "bun build ./index.ts --compile --outfile dist/prpeek"
   },
   "devDependencies": {
     "@types/node-notifier": "^8.0.5",
