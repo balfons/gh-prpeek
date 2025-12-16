@@ -7,6 +7,7 @@ import {
   t,
   ConsolePosition,
   TabSelectOption,
+  CliRenderer,
 } from "@opentui/core";
 import { formattedDateText, getPrRenderables } from "./src/utils/output.util";
 import { TabMenuRenderable } from "./src/components/TabMenuRenderable";
@@ -63,131 +64,16 @@ program
 
 program.parse();
 
-const renderer = await createCliRenderer({
-  exitOnCtrlC: true,
-  useConsole: true,
-  enableMouseMovement: true,
-  consoleOptions: {
-    position: ConsolePosition.BOTTOM,
-    sizePercent: 25,
-    startInDebugMode: true,
-  },
-});
-
-await setTerminalColorsFromTheme(renderer);
-
+let mainContainer: ScrollBoxRenderable;
+let tabMenu: TabMenuRenderable;
+let lastUpdatedSpinnerText: SpinnerRenderable;
+let statusContainer: BoxRenderable;
+let newReleaseContainer: NewVersionRenderable;
+let commands: CommandsRenderable;
 let prRenderables: PullRequestRenderable[] = [];
 
-const mainContainer = new ScrollBoxRenderable(renderer, {
-  id: "main-container",
-  zIndex: 10,
-  position: "relative",
-  width: "100%",
-  overflow: "hidden",
-  border: ["bottom", "right", "left"],
-  borderColor: "gray",
-  borderStyle: "rounded",
-  paddingLeft: 2,
-  paddingRight: 0,
-  flexGrow: 1,
-});
-
-const statusContainer = new BoxRenderable(renderer, {
-  id: "status-container",
-  zIndex: 10,
-  flexDirection: "row",
-  justifyContent: "space-between",
-  position: "absolute",
-  left: 0,
-  right: 0,
-  bottom: 0,
-  width: "100%",
-  paddingLeft: 2,
-  paddingRight: 2,
-  height: 1,
-});
-const latestRelease = await fetchLatestRelease();
-const newReleaseContainer = new NewVersionRenderable(renderer, {
-  id: "new-release-container",
-  zIndex: 20,
-  position: "absolute",
-  width: 60,
-  height: 8,
-  top: renderer.height / 2 - 3,
-  left: renderer.width / 2 - 30,
-  alignItems: "center",
-  flexDirection: "column",
-  borderColor: getHexColor("magenta"),
-  borderStyle: "rounded",
-  padding: 1,
-  backgroundColor: "transparent",
-  bodyRows: [
-    t`A new version of gh-prpeek is available: ${dim(
-      packageJson.version
-    )} → ${green(latestRelease ?? "")}`,
-    t`Run ${cyan(`gh extension upgrade balfons/gh-prpeek`)} to update`,
-  ],
-  actionText: t`${dim(`Press the Enter key to continue...`)}`,
-  actionKeyNames: ["enter", "return"],
-});
-
-const tabMenu = new TabMenuRenderable({
-  renderer,
-  height: 3,
-  position: "relative",
-  left: 0,
-  top: 0,
-  menuBorderColor: "#808080",
-  menuBackgroundColor: getHexColor("defaultBackground"),
-  selectedOptionTextColor: getHexColor("magenta"),
-  optionTextColor: getHexColor("white"),
-  onSelectionChanged: () => {
-    rerender();
-  },
-  onItemSelected: () => {
-    rerender();
-  },
-});
-
+let latestRelease: string | undefined;
 let lastUpdatedDate: string = "Updating...";
-
-const lastUpdatedSpinnerText = new SpinnerRenderable(renderer, {
-  text: t`[${green("✓")} ${dim(lastUpdatedDate)}]`,
-  bg: getHexColor("defaultBackground"),
-});
-
-const commands = new CommandsRenderable(renderer, {
-  flexDirection: "row",
-  flexWrap: "no-wrap",
-  gap: 1,
-  commands: [
-    {
-      key: "←/→",
-      description: "Switch tab",
-    },
-    {
-      key: "r",
-      description: "Refresh",
-      keyName: "r",
-      action() {
-        if (!isLoading) {
-          console.log("Refreshing...");
-          runProgram(false);
-        }
-      },
-    },
-    {
-      key: "Ctrl+C",
-      description: "Exit",
-    },
-  ],
-});
-
-renderer.root.add(tabMenu);
-renderer.root.add(mainContainer);
-statusContainer.add(lastUpdatedSpinnerText);
-statusContainer.add(commands);
-renderer.root.add(statusContainer);
 
 let isLoading = false;
 
@@ -210,11 +96,123 @@ let requestingReviewPrs: PullRequest[] = [];
 let reviewedPrs: PullRequest[] = [];
 let mentionedPrs: PullRequest[] = [];
 
+const createRenderables = async (renderer: CliRenderer) => {
+  mainContainer = new ScrollBoxRenderable(renderer, {
+    id: "main-container",
+    zIndex: 10,
+    position: "relative",
+    width: "100%",
+    overflow: "hidden",
+    border: ["bottom", "right", "left"],
+    borderColor: "gray",
+    borderStyle: "rounded",
+    paddingLeft: 2,
+    paddingRight: 0,
+    flexGrow: 1,
+  });
+
+  statusContainer = new BoxRenderable(renderer, {
+    id: "status-container",
+    zIndex: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: "100%",
+    paddingLeft: 2,
+    paddingRight: 2,
+    height: 1,
+  });
+
+  latestRelease = await fetchLatestRelease();
+  newReleaseContainer = new NewVersionRenderable(renderer, {
+    id: "new-release-container",
+    zIndex: 20,
+    position: "absolute",
+    width: 60,
+    height: 8,
+    top: renderer.height / 2 - 3,
+    left: renderer.width / 2 - 30,
+    alignItems: "center",
+    flexDirection: "column",
+    borderColor: getHexColor("magenta"),
+    borderStyle: "rounded",
+    padding: 1,
+    backgroundColor: "transparent",
+    bodyRows: [
+      t`A new version of gh-prpeek is available: ${dim(
+        packageJson.version
+      )} → ${green(latestRelease ?? "")}`,
+      t`Run ${cyan(`gh extension upgrade balfons/gh-prpeek`)} to update`,
+    ],
+    actionText: t`${dim(`Press the Enter key to continue...`)}`,
+    actionKeyNames: ["enter", "return"],
+  });
+
+  tabMenu = new TabMenuRenderable({
+    renderer,
+    height: 3,
+    position: "relative",
+    left: 0,
+    top: 0,
+    menuBorderColor: "#808080",
+    menuBackgroundColor: getHexColor("defaultBackground"),
+    selectedOptionTextColor: getHexColor("magenta"),
+    optionTextColor: getHexColor("white"),
+    onSelectionChanged: () => rerender(),
+    onItemSelected: () => rerender(),
+  });
+
+  lastUpdatedSpinnerText = new SpinnerRenderable(renderer, {
+    id: "last-updated-spinner-text",
+    text: t`[${green("✓")} ${dim(lastUpdatedDate)}]`,
+    bg: getHexColor("defaultBackground"),
+  });
+
+  commands = new CommandsRenderable(renderer, {
+    flexDirection: "row",
+    flexWrap: "no-wrap",
+    gap: 1,
+    commands: [
+      {
+        key: "←/→",
+        description: "Switch tab",
+      },
+      {
+        key: "r",
+        description: "Refresh",
+        keyName: "r",
+        action() {
+          if (!isLoading) {
+            console.log("Refreshing...");
+            runProgram(false);
+          }
+        },
+      },
+      {
+        key: "Ctrl+C",
+        description: "Exit",
+      },
+    ],
+  });
+
+  renderer.root.add(tabMenu);
+  renderer.root.add(mainContainer);
+  statusContainer.add(lastUpdatedSpinnerText);
+  statusContainer.add(commands);
+  renderer.root.add(statusContainer);
+};
+
 const runProgram = async (firstRun: boolean) => {
   if (isLoading) return;
   if (firstRun && latestRelease && latestRelease !== packageJson.version) {
     renderer.root.add(newReleaseContainer);
   }
+
+  isLoading = true;
+  lastUpdatedSpinnerText.startSpinner(lastUpdatedDate);
 
   const prsCreatedByMePromises = repos.map(fetchMyPullRequests);
   const prsRequestingReviewPromises = repos.map((repo) =>
@@ -224,8 +222,6 @@ const runProgram = async (firstRun: boolean) => {
   const mentionedPromises = mentioned ? repos.map(fetchMentionedPrs) : [];
 
   try {
-    isLoading = true;
-    lastUpdatedSpinnerText.startSpinner(lastUpdatedDate);
     [myPrs, requestingReviewPrs, reviewedPrs, mentionedPrs] = await Promise.all(
       [
         (await Promise.all(prsCreatedByMePromises)).flat(),
@@ -234,38 +230,46 @@ const runProgram = async (firstRun: boolean) => {
         (await Promise.all(mentionedPromises)).flat(),
       ]
     );
+
+    const allPrs = [
+      ...myPrs,
+      ...requestingReviewPrs,
+      ...reviewedPrs,
+      ...mentionedPrs,
+    ];
+    console.log(`Fetched a total of ${allPrs.length} pull requests.`);
+    const newPrs = [...myPrs, ...requestingReviewPrs];
+
+    if (!firstRun && notify) {
+      notifyNewPrs(previousPrs, newPrs);
+      notifyMergablePrs(myPreviousPrs, myPrs);
+      notifyFailingePrs(myPreviousPrs, myPrs);
+      notifyNewCommentsPrs(myPreviousPrs, myPrs);
+    }
+
+    previousPrs = newPrs;
+    myPreviousPrs = myPrs;
+
+    setTabOptions({
+      requestingReviewPrs,
+      reviewedPrs,
+      myPrs,
+      mentionedPrs,
+    });
+
     lastUpdatedDate = formattedDateText();
     isLoading = false;
     lastUpdatedSpinnerText.stopSpinner(lastUpdatedDate);
+
+    tabMenu.focus();
+    rerender();
   } catch (error) {
+    console.error("Error fetching pull requests:", error);
     isLoading = false;
     lastUpdatedSpinnerText.stopSpinnerWithError(lastUpdatedDate);
   }
 
-  const newPrs = [...myPrs, ...requestingReviewPrs];
-
-  if (!firstRun && notify) {
-    notifyNewPrs(previousPrs, newPrs);
-    notifyMergablePrs(myPreviousPrs, myPrs);
-    notifyFailingePrs(myPreviousPrs, myPrs);
-    notifyNewCommentsPrs(myPreviousPrs, myPrs);
-  }
-
-  previousPrs = newPrs;
-  myPreviousPrs = myPrs;
-
-  setTabOptions({
-    requestingReviewPrs,
-    reviewedPrs,
-    myPrs,
-    mentionedPrs,
-  });
-
-  tabMenu.focus();
-
-  rerender();
-
-  setTimeout(() => runProgram(false), intervalAsMillis).unref(); // unref to not block main thread
+  setTimeout(() => runProgram(false), intervalAsMillis).unref();
 };
 
 const setTabOptions = ({
@@ -325,10 +329,26 @@ const rerender = () => {
   prRenderables.forEach((pr) => mainContainer.add(pr));
 };
 
+const renderer = await createCliRenderer({
+  exitOnCtrlC: true,
+  useConsole: true,
+  enableMouseMovement: true,
+  consoleOptions: {
+    position: ConsolePosition.BOTTOM,
+    sizePercent: 50,
+    startInDebugMode: true,
+  },
+});
+
+// renderer.console.toggle();
+await setTerminalColorsFromTheme(renderer);
+
+await createRenderables(renderer);
 setTabOptions({
   requestingReviewPrs: [],
   reviewedPrs: [],
   myPrs: [],
   mentionedPrs: [],
 });
+
 runProgram(true);

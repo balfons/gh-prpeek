@@ -75,9 +75,11 @@ export class PullRequestRenderable extends BoxRenderable {
       open(pr.url);
     };
     titleRenderable.onMouseOver = () => {
+      if (this.isDestroyed) return;
       titleRenderable.content = t`${underline(pr.title)}`;
     };
     titleRenderable.onMouseOut = () => {
+      if (this.isDestroyed) return;
       titleRenderable.content = pr.title;
     };
 
@@ -127,9 +129,11 @@ export class PullRequestRenderable extends BoxRenderable {
         open(check.url);
       };
       failedCheck.onMouseOver = () => {
+        if (this.isDestroyed) return;
         failedCheck.content = t`${underline(red(check.name))}`;
       };
       failedCheck.onMouseOut = () => {
+        if (this.isDestroyed) return;
         failedCheck.content = t`${red(check.name)}`;
       };
 

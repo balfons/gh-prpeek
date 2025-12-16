@@ -19,13 +19,20 @@ export class SpinnerRenderable extends TextRenderable {
     const { text, ...textOptions } = options;
 
     super(ctx, {
-      id: "commands-renderable",
       ...textOptions,
     });
   }
 
-  startSpinner(text: string) {
+  private clearSpinner() {
     this.spinnerIndex = 0;
+    if (this.spinnerInterval) {
+      clearInterval(this.spinnerInterval);
+      this.spinnerInterval = null;
+    }
+  }
+
+  startSpinner(text: string) {
+    this.clearSpinner();
     this.content = t`${dim("[")}${cyan(this.spinnerFrames[0])} ${dim(
       text
     )}${dim("]")}`;
@@ -38,18 +45,12 @@ export class SpinnerRenderable extends TextRenderable {
   }
 
   stopSpinner(text: string) {
-    if (this.spinnerInterval) {
-      clearInterval(this.spinnerInterval);
-      this.spinnerInterval = null;
-    }
+    this.clearSpinner();
     this.content = t`${dim("[")}${green("✓")} ${dim(text)}${dim("]")}`;
   }
 
   stopSpinnerWithError(text: string) {
-    if (this.spinnerInterval) {
-      clearInterval(this.spinnerInterval);
-      this.spinnerInterval = null;
-    }
+    this.clearSpinner();
     this.content = t`${dim("[")}${red("✗")} ${dim(text)}${dim("]")}`;
   }
 }
