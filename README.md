@@ -1,5 +1,10 @@
 # prpeek 👀
 
+![GitHub Release](https://img.shields.io/github/v/release/balfons/gh-prpeek)
+![GitHub last commit](https://img.shields.io/github/last-commit/balfons/gh-prpeek)
+![GitHub Repo stars](https://img.shields.io/github/stars/balfons/gh-prpeek?style=flat&color=yellow)
+
+
 Show status of relevant GitHub pull requests live
 
 ![Example screenshot](example.png)
