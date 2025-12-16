@@ -1,16 +1,7 @@
-import chalk from "chalk";
 import { PullRequest } from "../models/PullRequest";
 import { CliRenderer } from "@opentui/core";
 import { PullRequestRenderable } from "../components/PullRequestRenderable";
 
-export const getUpgradeMessage = (
-  currentVersion: string,
-  newVersion: string
-): string => {
-  return `prpeek update available ${chalk.dim(currentVersion)} → ${chalk.green(
-    newVersion
-  )}\nRun ${chalk.cyan(`gh extension upgrade balfons/gh-prpeek`)} to update`;
-};
 
 export const formatRepoNames = (repos: string[]): string[] =>
   repos.map((repo) => repo.split("/").pop()).filter((r) => r !== undefined);
