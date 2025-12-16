@@ -1,5 +1,10 @@
 # Changelog
 
+## v5.0.0 - 2025-12-16
+
+### Changed
+- Use opentui to implement a totally new design
+
 ## 4.2.0 - 2025-02-03
 
 ### Added

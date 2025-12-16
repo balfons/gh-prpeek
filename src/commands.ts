@@ -1,4 +1,4 @@
-import { $, ShellPromise, ShellError } from "bun";
+import { $, ShellPromise } from "bun";
 import { PullRequestFactory } from "./models/PullRequestFactory";
 import { PullRequestResponse } from "./models/GitHubResponse";
 

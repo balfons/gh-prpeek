@@ -30,15 +30,15 @@ gh prpeek --repos balfons/gh-prpeek,oven-sh/bun --notify --interval 20 --labels 
 **Options**
 
 ```bash
+  -V, --version              output the version number
   -r, --repos <repos>        Repositories to target: OWNER/REPO
-  -i, --interval <interval>  Update interval in seconds (default: "15")
+  -i, --interval <interval>  Update interval in seconds (default: "30")
   -n, --notify               Notification when a new PR is added or when one of your PRs becomes mergable (default: false)
   --reviewed                 Show PRs that you have reviewed (default: false)
   --mentioned                Show PRs that mentions you (default: false)
   --hide-checks              Hide result of failing individual checks (default: false)
   -l, --labels <items>       Only show pull requests that needs review from you with any of the specified labels
   -h, --help                 display help for command
-  -V, --version              output the version number
 ```
 
 ## Develop
