@@ -1,5 +1,10 @@
 # Changelog
 
+## v5.0.1 - 2025-12-16
+
+### Added
+- Executable for windows x64
+
 ## v5.0.0 - 2025-12-16
 
 ### Changed
