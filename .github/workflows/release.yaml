@@ -11,8 +11,25 @@ permissions:
   attestations: write
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
+  build:
+    name: Build for ${{ matrix.os }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: x64
+            target: linux-x64
+          - os: ubuntu-24.04-arm
+            arch: arm64
+            target: linux-arm64
+          - os: macos-14
+            arch: x64
+            target: darwin-x64
+          - os: macos-latest
+            arch: arm64
+            target: darwin-arm64
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -27,4 +44,4 @@ jobs:
         with:
           gpg_fingerprint: ${{ steps.import_gpg.outputs.fingerprint }}
           generate_attestations: true
-          build_script_override: "script/build.sh"
+          build_script_override: bun build ./index.ts --compile --outfile dist/prpeek/gh-prpeek-${{ matrix.target }}
