@@ -64,3 +64,4 @@ jobs:
         with:
           gpg_fingerprint: ${{ steps.import_gpg.outputs.fingerprint }}
           generate_attestations: true
+          build_script_override: "script/build.sh"
