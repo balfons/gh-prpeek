@@ -2,7 +2,7 @@
   "name": "gh-prpeek",
   "module": "index.ts",
   "type": "module",
-  "version": "v4.2.1",
+  "version": "v5.0.0",
   "scripts": {
     "start": "bun run index.ts",
     "compile": "bun build ./index.ts --compile --outfile dist/prpeek",
