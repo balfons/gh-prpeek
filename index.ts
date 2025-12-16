@@ -340,7 +340,6 @@ const renderer = await createCliRenderer({
   },
 });
 
-// renderer.console.toggle();
 await setTerminalColorsFromTheme(renderer);
 
 await createRenderables(renderer);
