@@ -4,7 +4,6 @@
 ![GitHub last commit](https://img.shields.io/github/last-commit/balfons/gh-prpeek)
 ![GitHub Repo stars](https://img.shields.io/github/stars/balfons/gh-prpeek?style=flat&color=yellow)
 
-
 Show status of relevant GitHub pull requests live
 
 ![Example screenshot](example.png)
@@ -29,7 +28,7 @@ gh extension upgrade balfons/gh-prpeek
 **Example**
 
 ```bash
-gh prpeek --repos balfons/gh-prpeek,oven-sh/bun --notify --interval 20 --labels bug,feature --reviewed --mentioned
+gh prpeek --repos balfons/gh-prpeek,oven-sh/bun --labels bug,feature
 ```
 
 **Options**
@@ -37,11 +36,12 @@ gh prpeek --repos balfons/gh-prpeek,oven-sh/bun --notify --interval 20 --labels 
 ```bash
   -V, --version              output the version number
   -r, --repos <repos>        Repositories to target: OWNER/REPO
-  -i, --interval <interval>  Update interval in seconds (default: "30")
-  -n, --notify               Notification when a new PR is added or when one of your PRs becomes mergable (default: false)
-  --reviewed                 Show PRs that you have reviewed (default: false)
-  --mentioned                Show PRs that mentions you (default: false)
+  -i, --interval <interval>  Update interval in seconds (default: "60")
+  -n, --notify               Notification when a new PR is added or when one of your PRs becomes mergable (default: true)
+  --reviewed                 Show PRs that you have reviewed (default: true)
+  --mentioned                Show PRs that mentions you (default: true)
   --hide-checks              Hide result of failing individual checks (default: false)
+  --show-labels              Show labels on pull requests (default: false)
   -l, --labels <items>       Only show pull requests that needs review from you with any of the specified labels
   -h, --help                 display help for command
 ```
@@ -69,5 +69,5 @@ bun compile
 **Run compiled executable**
 
 ```bash
-./dist/gh-prpeek --repos <owner>/<repository> --notify --interval 15 --labels bug,feature --reviewed
+./dist/gh-prpeek --repos <owner>/<repository> --labels bug,feature
 ```

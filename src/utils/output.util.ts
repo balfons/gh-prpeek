@@ -37,10 +37,12 @@ export const getPrRenderables = ({
   renderer,
   pullRequests,
   hideChecks,
+  showLabels,
 }: {
   renderer: CliRenderer;
   pullRequests: PullRequest[];
   hideChecks: boolean;
+  showLabels: boolean;
 }) => {
   const indent = getPrNumberIndent(pullRequests);
 
@@ -48,6 +50,7 @@ export const getPrRenderables = ({
     (pr) =>
       new PullRequestRenderable(renderer, {
         hideFailingChecks: hideChecks,
+        showLabels,
         indent,
         pr,
       })

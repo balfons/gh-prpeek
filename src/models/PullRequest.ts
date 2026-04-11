@@ -15,12 +15,17 @@ export enum CheckStatus {
   NONE = "NONE",
 }
 
+export type Label = {
+  name: string;
+  color: string;
+}
+
 export interface PullRequest {
   title: string;
   number: number;
   repository: string;
   url: string;
-  labels: string[];
+  labels: Label[];
   author: string;
   isDraft: boolean;
   isReviewRequested: boolean;

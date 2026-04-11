@@ -74,7 +74,10 @@ const from = (pr: PullRequestResponse): PullRequest => {
   const totalChecksCount = pr.statusCheckRollup.length;
 
   const checkStatus = getCheckStatus(pr);
-  const labels = pr.labels.map((label) => label.name);
+  const labels = pr.labels.map((label) => ({
+    name: label.name,
+    color: label.color,
+  }));
 
   return {
     title,

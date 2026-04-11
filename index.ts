@@ -6,11 +6,18 @@ import {
   dim,
   t,
   ConsolePosition,
-  TabSelectOption,
   CliRenderer,
+  StyledText,
 } from "@opentui/core";
-import { formattedDateText, getPrRenderables } from "./src/utils/output.util";
-import { TabMenuRenderable } from "./src/components/TabMenuRenderable";
+import {
+  formatRepoNames,
+  formattedDateText,
+  getPrRenderables,
+} from "./src/utils/output.util";
+import {
+  TabMenuRenderable,
+  TabOption,
+} from "./src/components/TabMenuRenderable";
 import {
   fetchLatestRelease,
   fetchMentionedPrs,
@@ -37,7 +44,7 @@ import {
 import { CommandsRenderable } from "./src/components/CommandsRenderable";
 import { SpinnerRenderable } from "./src/components/SpinnerRenderable";
 import { PullRequestRenderable } from "./src/components/PullRequestRenderable";
-import { NewVersionRenderable } from "./src/components/NewVersionRenderable";
+import { SplashScreenRenderable } from "./src/components/SplashScreenRenderable";
 
 program
   .version(packageJson.version)
@@ -45,30 +52,32 @@ program
   .requiredOption(
     "-r, --repos <repos>",
     "Repositories to target: OWNER/REPO",
-    commaSeparatedList
+    commaSeparatedList,
   )
-  .option("-i, --interval <interval>", "Update interval in seconds", "30")
+  .option("-i, --interval <interval>", "Update interval in seconds", "60")
   .option(
     "-n, --notify",
     "Notification when a new PR is added or when one of your PRs becomes mergable",
-    false
+    true,
   )
-  .option("--reviewed", "Show PRs that you have reviewed", false)
-  .option("--mentioned", "Show PRs that mentions you", false)
+  .option("--reviewed", "Show PRs that you have reviewed", true)
+  .option("--mentioned", "Show PRs that mentions you", true)
   .option("--hide-checks", "Hide result of failing individual checks", false)
+  .option("--show-labels", "Show labels on pull requests", false)
+  .option("--debug", "Shows console output on error", false)
   .option(
     "-l, --labels <items>",
     "Only show pull requests that needs review from you with any of the specified labels",
-    commaSeparatedList
+    commaSeparatedList,
   );
 
 program.parse();
 
-let mainContainer: ScrollBoxRenderable;
+let prListContainer: ScrollBoxRenderable;
 let tabMenu: TabMenuRenderable;
 let lastUpdatedSpinnerText: SpinnerRenderable;
 let statusContainer: BoxRenderable;
-let newReleaseContainer: NewVersionRenderable;
+let splashScreen: SplashScreenRenderable;
 let commands: CommandsRenderable;
 let prRenderables: PullRequestRenderable[] = [];
 
@@ -78,12 +87,21 @@ let lastUpdatedDate: string = "Updating...";
 let isLoading = false;
 let hasHadFirstSuccessfulLoad = false;
 
-const { repos, interval, notify, labels, reviewed, mentioned, hideChecks } =
-  program.opts<Flags>();
+const {
+  repos,
+  interval,
+  notify,
+  labels,
+  reviewed,
+  mentioned,
+  hideChecks,
+  showLabels,
+  debug,
+} = program.opts<Flags>();
 
 const intervalAsMillis = Number(interval * 1000);
 
-// const repoNames = formatRepoNames(repos);
+const repoNames = formatRepoNames(repos);
 
 if (isNaN(intervalAsMillis)) {
   program.error("Interval must be a number");
@@ -99,8 +117,47 @@ let mentionedPrs: PullRequest[] = [];
 
 let timeout: Timer | undefined = undefined;
 
-const createRenderables = async (renderer: CliRenderer) => {
-  mainContainer = new ScrollBoxRenderable(renderer, {
+const initSplashScreen = async (renderer: CliRenderer) => {
+  latestRelease = await fetchLatestRelease();
+
+  let bodyRows: StyledText[] = [
+    t`${green(`Fetching prs for: ${repoNames.join(", ")}`)}`,
+  ];
+  if (latestRelease && latestRelease !== packageJson.version) {
+    bodyRows = [
+      ...bodyRows,
+      t``,
+      t`A new version of gh-prpeek is available: ${dim(
+        packageJson.version,
+      )} → ${green(latestRelease ?? "")}`,
+      t`Run ${cyan(`gh extension upgrade balfons/gh-prpeek`)} to update`,
+    ];
+  }
+
+  splashScreen = new SplashScreenRenderable(renderer, {
+    id: "splash-screen",
+    zIndex: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "column",
+    height: "100%",
+    backgroundColor: "transparent",
+    asciiText: "prpeek",
+    bodyRows,
+  });
+
+  return {
+    render() {
+      renderer.root.add(splashScreen);
+    },
+    destroy() {
+      splashScreen.destroy();
+    },
+  };
+};
+
+const initAppRenderables = (renderer: CliRenderer) => {
+  prListContainer = new ScrollBoxRenderable(renderer, {
     id: "main-container",
     zIndex: 10,
     position: "relative",
@@ -109,6 +166,7 @@ const createRenderables = async (renderer: CliRenderer) => {
     border: ["bottom", "right", "left"],
     borderColor: "gray",
     borderStyle: "rounded",
+    focusable: false,
     paddingLeft: 2,
     paddingRight: 0,
     flexGrow: 1,
@@ -127,31 +185,6 @@ const createRenderables = async (renderer: CliRenderer) => {
     paddingLeft: 2,
     paddingRight: 2,
     height: 1,
-  });
-
-  latestRelease = await fetchLatestRelease();
-  newReleaseContainer = new NewVersionRenderable(renderer, {
-    id: "new-release-container",
-    zIndex: 20,
-    position: "absolute",
-    width: 60,
-    height: 8,
-    top: renderer.height / 2 - 3,
-    left: renderer.width / 2 - 30,
-    alignItems: "center",
-    flexDirection: "column",
-    borderColor: getHexColor("magenta"),
-    borderStyle: "rounded",
-    padding: 1,
-    backgroundColor: "transparent",
-    bodyRows: [
-      t`A new version of gh-prpeek is available: ${dim(
-        packageJson.version
-      )} → ${green(latestRelease ?? "")}`,
-      t`Run ${cyan(`gh extension upgrade balfons/gh-prpeek`)} to update`,
-    ],
-    actionText: t`${dim(`Press the Enter key to continue...`)}`,
-    actionKeyNames: ["enter", "return"],
   });
 
   tabMenu = new TabMenuRenderable({
@@ -201,11 +234,16 @@ const createRenderables = async (renderer: CliRenderer) => {
     ],
   });
 
-  renderer.root.add(tabMenu);
-  renderer.root.add(mainContainer);
-  statusContainer.add(lastUpdatedSpinnerText);
-  statusContainer.add(commands);
-  renderer.root.add(statusContainer);
+  return {
+    render() {
+      renderer.root.add(tabMenu);
+      renderer.root.add(prListContainer);
+      statusContainer.add(lastUpdatedSpinnerText);
+      statusContainer.add(commands);
+      renderer.root.add(statusContainer);
+      tabMenu.focus();
+    },
+  };
 };
 
 const runProgram = async (firstRun: boolean) => {
@@ -215,16 +253,12 @@ const runProgram = async (firstRun: boolean) => {
     clearTimeout(timeout);
   }
 
-  if (firstRun && latestRelease && latestRelease !== packageJson.version) {
-    renderer.root.add(newReleaseContainer);
-  }
-
   isLoading = true;
   lastUpdatedSpinnerText.startSpinner(lastUpdatedDate);
 
   const prsCreatedByMePromises = repos.map(fetchMyPullRequests);
   const prsRequestingReviewPromises = repos.map((repo) =>
-    fetchRequestingReviewPullRequests(repo, labels ?? [])
+    fetchRequestingReviewPullRequests(repo, labels ?? []),
   );
   const reviewedPromises = reviewed ? repos.map(fetchReviewedPrs) : [];
   const mentionedPromises = mentioned ? repos.map(fetchMentionedPrs) : [];
@@ -236,7 +270,7 @@ const runProgram = async (firstRun: boolean) => {
         (await Promise.all(prsRequestingReviewPromises)).flat(),
         (await Promise.all(reviewedPromises)).flat(),
         (await Promise.all(mentionedPromises)).flat(),
-      ]
+      ],
     );
 
     const allPrs = [
@@ -272,8 +306,15 @@ const runProgram = async (firstRun: boolean) => {
 
     tabMenu.focus();
     rerender();
+    /**
+     * If the console was open due to a previous error, hide it after a successful load.
+     * This usually happens due to connection issues or hitting the GitHub API rate limit.
+     */
+
+    if (!debug) {
+      renderer.console.hide();
+    }
   } catch (error) {
-    console.error("Error fetching pull requests:", error);
     isLoading = false;
     lastUpdatedSpinnerText.stopSpinnerWithError(lastUpdatedDate);
   }
@@ -293,35 +334,33 @@ const setTabOptions = ({
   myPrs: PullRequest[];
   mentionedPrs: PullRequest[];
 }) => {
-  const options: TabSelectOption[] = [
+  const options: TabOption[] = [
     {
-      name: `Requesting review (${requestingReviewPrs.length})`,
+      name: `Requesting review`,
+      count: requestingReviewPrs.length,
       description: "PRs needing your review",
       value: requestingReviewPrs,
     },
-    ...(reviewed
-      ? [
-          {
-            name: `Reviewed (${reviewedPrs.length})`,
-            description: "PRs you have reviewed",
-            value: reviewedPrs,
-          },
-        ]
-      : []),
     {
-      name: `Created by me (${myPrs.length})`,
+      name: `Reviewed`,
+      count: reviewedPrs.length,
+      description: "PRs you have reviewed",
+      value: reviewedPrs,
+      hidden: !reviewed,
+    },
+    {
+      name: `Created by me`,
+      count: myPrs.length,
       description: "PRs you have created",
       value: myPrs,
     },
-    ...(mentioned
-      ? [
-          {
-            name: `Mentions me (${mentionedPrs.length})`,
-            description: "PRs mentioning you",
-            value: mentionedPrs,
-          },
-        ]
-      : []),
+    {
+      name: `Mentions me`,
+      count: mentionedPrs.length,
+      description: "PRs mentioning you",
+      value: mentionedPrs,
+      hidden: !mentioned,
+    },
   ];
   tabMenu.setTabOptions(options);
 };
@@ -335,30 +374,32 @@ const rerender = () => {
     renderer,
     pullRequests: selectedOption?.value || [],
     hideChecks,
+    showLabels,
   });
-  prRenderables.forEach((pr) => mainContainer.add(pr));
+  prRenderables.forEach((pr) => prListContainer.add(pr));
 };
 
 const renderer = await createCliRenderer({
   exitOnCtrlC: true,
-  useConsole: true,
   enableMouseMovement: true,
+  autoFocus: false,
+  openConsoleOnError: debug,
   consoleOptions: {
-    position: ConsolePosition.BOTTOM,
+    position: ConsolePosition.TOP,
     sizePercent: 50,
-    startInDebugMode: true,
   },
   onDestroy: () => process.exit(0), // Until bun supports aborting shell promises: https://github.com/oven-sh/bun/issues/18247
 });
 
 await setTerminalColorsFromTheme(renderer);
 
-await createRenderables(renderer);
-setTabOptions({
-  requestingReviewPrs: [],
-  reviewedPrs: [],
-  myPrs: [],
-  mentionedPrs: [],
-});
+// Show splash screen while loading data for the first time
+const splashScreenInstance = await initSplashScreen(renderer);
+splashScreenInstance.render();
+// Initialize the main renderables (tabs, containers, etc.)
+const appRenderables = initAppRenderables(renderer);
+await runProgram(true);
 
-runProgram(true);
+// After the first successful load, destroy the splash screen and show the main app
+splashScreenInstance.destroy();
+appRenderables.render();

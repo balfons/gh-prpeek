@@ -13,7 +13,7 @@ export interface SpinnerRenderableOptions extends TextOptions {
 }
 export class SpinnerRenderable extends TextRenderable {
   private spinnerIndex: number = 0;
-  private spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+  private spinnerFrames = ["◜", "◠", "◝", "◞", "◡", "◟"];
   private spinnerInterval: Timer | null = null;
   constructor(ctx: RenderContext, options: SpinnerRenderableOptions) {
     const { text, ...textOptions } = options;
@@ -34,15 +34,15 @@ export class SpinnerRenderable extends TextRenderable {
   startSpinner(text: string) {
     this.clearSpinner();
     this.content = t`${dim("[")}${cyan(this.spinnerFrames[0])} ${dim(
-      text
+      text,
     )}${dim("]")}`;
     this.spinnerInterval = setInterval(() => {
       if (this.isDestroyed) return;
       this.spinnerIndex = (this.spinnerIndex + 1) % this.spinnerFrames.length;
       this.content = t`${dim("[")}${cyan(
-        this.spinnerFrames[this.spinnerIndex]
+        this.spinnerFrames[this.spinnerIndex],
       )} ${text}${dim("]")}`;
-    }, 80).unref();
+    }, 100).unref();
   }
 
   stopSpinner(text: string) {

@@ -1,14 +1,25 @@
 import {
+  bg,
   BoxOptions,
   BoxRenderable,
   dim,
+  fg,
+  hexToRgb,
   RenderContext,
   StyledText,
   t,
   TextRenderable,
   underline,
 } from "@opentui/core";
-import { blue, cyan, green, magenta, red, yellow } from "../utils/color.util";
+import {
+  blue,
+  colorIsDarkSimple,
+  cyan,
+  green,
+  magenta,
+  red,
+  yellow,
+} from "../utils/color.util";
 import open from "open";
 import { CheckStatus, PullRequest } from "../models/PullRequest";
 
@@ -16,10 +27,17 @@ export interface PullRequestRenderableOptions extends BoxOptions {
   indent: number;
   pr: PullRequest;
   hideFailingChecks?: boolean;
+  showLabels?: boolean;
 }
 export class PullRequestRenderable extends BoxRenderable {
   constructor(ctx: RenderContext, options: PullRequestRenderableOptions) {
-    const { indent, pr, hideFailingChecks = false, ...boxOptions } = options;
+    const {
+      indent,
+      pr,
+      hideFailingChecks = false,
+      showLabels = false,
+      ...boxOptions
+    } = options;
 
     super(ctx, {
       id: `pr-container-${pr.number}`,
@@ -77,10 +95,12 @@ export class PullRequestRenderable extends BoxRenderable {
     titleRenderable.onMouseOver = () => {
       if (this.isDestroyed) return;
       titleRenderable.content = t`${underline(pr.title)}`;
+      this.ctx.setMousePointer("pointer");
     };
     titleRenderable.onMouseOut = () => {
       if (this.isDestroyed) return;
       titleRenderable.content = pr.title;
+      this.ctx.setMousePointer("default");
     };
 
     // Author
@@ -98,6 +118,18 @@ export class PullRequestRenderable extends BoxRenderable {
       content: t`[${green(`+${pr.additions}`)} ${red(`-${pr.deletions}`)}]`,
     });
 
+    const labelRenderables = showLabels
+      ? pr.labels.map((label) => {
+          const rgb = hexToRgb(`#${label.color}`);
+
+          const fgColor = colorIsDarkSimple(`#${label.color}`)
+            ? "#ffffff"
+            : "#000000";
+          return new TextRenderable(ctx, {
+            content: t`${fg(fgColor)(bg(rgb)(` ${label.name} `))}`,
+          });
+        })
+      : [];
     // Status Check
     const statusCheckRenderable = new TextRenderable(ctx, {
       content: this.getStatusCheckText(pr),
@@ -130,10 +162,12 @@ export class PullRequestRenderable extends BoxRenderable {
       };
       failedCheck.onMouseOver = () => {
         if (this.isDestroyed) return;
+        this.ctx.setMousePointer("pointer");
         failedCheck.content = t`${underline(red(check.name))}`;
       };
       failedCheck.onMouseOut = () => {
         if (this.isDestroyed) return;
+        this.ctx.setMousePointer("default");
         failedCheck.content = t`${red(check.name)}`;
       };
 
@@ -146,6 +180,10 @@ export class PullRequestRenderable extends BoxRenderable {
     row2.add(authorRenderable);
     row2.add(repoRenderable);
     row2.add(additionsAndDeletionsRenderable);
+
+    labelRenderables.forEach((labelRenderable) => {
+      row2.add(labelRenderable);
+    });
 
     row3.add(statusCheckRenderable);
     row3.add(commentsRenderable);
@@ -174,7 +212,7 @@ export class PullRequestRenderable extends BoxRenderable {
         break;
       case CheckStatus.FAILURE:
         statusCheck = t`${red("×")} ${red(
-          `${pr.failingChecks.length}/${pr.totalChecksCount} checks failing`
+          `${pr.failingChecks.length}/${pr.totalChecksCount} checks failing`,
         )}`;
         break;
       case CheckStatus.NONE:
@@ -222,11 +260,4 @@ export class PullRequestRenderable extends BoxRenderable {
 
     return mergeableState;
   }
-
-  //   private getStyledTextWidth(text: StyledText): number {
-  //     return text.chunks.reduce(
-  //       (acc, chunk) => acc + String(chunk.text).length,
-  //       0
-  //     );
-  //   }
 }

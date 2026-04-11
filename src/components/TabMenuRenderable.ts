@@ -10,8 +10,15 @@ import {
 } from "@opentui/core";
 import { getHexColor } from "../utils/color.util";
 
-export interface TabMenuRenderableOptions
-  extends BoxOptions {
+export interface TabOption extends TabSelectOption {
+  name: string;
+  count?: number;
+  description: string;
+  value?: any;
+  hidden?: boolean;
+}
+
+export interface TabMenuRenderableOptions extends BoxOptions {
   renderer: CliRenderer;
   menuBorderColor?: string;
   menuBackgroundColor?: string;
@@ -84,7 +91,7 @@ export class TabMenuRenderable extends BoxRenderable {
         (index: number, option: TabSelectOption) => {
           options.onSelectionChanged?.(index, option);
           this.updateTabs();
-        }
+        },
       );
     }
 
@@ -94,7 +101,7 @@ export class TabMenuRenderable extends BoxRenderable {
         (index: number, option: TabSelectOption) => {
           options.onItemSelected?.(index, option);
           this.updateTabs();
-        }
+        },
       );
     }
   }
@@ -109,8 +116,19 @@ export class TabMenuRenderable extends BoxRenderable {
   /**
    * Set the tab options
    */
-  setTabOptions(options: TabSelectOption[]): void {
-    this.tabs.setOptions(options);
+  setTabOptions(options: TabOption[]): void {
+    const tabSelectOptions: TabSelectOption[] = options
+      .filter((option) => !option.hidden)
+      .map((option) => ({
+        name:
+          option.count !== undefined
+            ? `${option.name} (${option.count})`
+            : option.name,
+        description: option.description,
+        value: option.value,
+      }));
+
+    this.tabs.setOptions(tabSelectOptions);
     this.updateTabs();
   }
 
@@ -146,7 +164,7 @@ export class TabMenuRenderable extends BoxRenderable {
         currentX,
         0,
         borderColor,
-        backgroundColor
+        backgroundColor,
       );
 
       // Draw top border
@@ -156,7 +174,7 @@ export class TabMenuRenderable extends BoxRenderable {
           currentX + i,
           0,
           borderColor,
-          backgroundColor
+          backgroundColor,
         );
       }
 
@@ -166,7 +184,7 @@ export class TabMenuRenderable extends BoxRenderable {
         currentX + tabWidth - 1,
         0,
         borderColor,
-        backgroundColor
+        backgroundColor,
       );
 
       // Draw left border
@@ -175,7 +193,7 @@ export class TabMenuRenderable extends BoxRenderable {
         currentX,
         1,
         borderColor,
-        backgroundColor
+        backgroundColor,
       );
 
       // Draw tab text
@@ -184,7 +202,7 @@ export class TabMenuRenderable extends BoxRenderable {
         currentX + 2,
         1,
         textColor,
-        backgroundColor
+        backgroundColor,
       );
 
       // Draw right border
@@ -193,7 +211,7 @@ export class TabMenuRenderable extends BoxRenderable {
         currentX + tabWidth - 1,
         1,
         borderColor,
-        backgroundColor
+        backgroundColor,
       );
 
       currentX += tabWidth;
@@ -226,7 +244,7 @@ export class TabMenuRenderable extends BoxRenderable {
       this.renderer.width - 1,
       2,
       grayColor,
-      backgroundColor
+      backgroundColor,
     );
 
     // Now overlay the tab-specific connectors
@@ -244,7 +262,7 @@ export class TabMenuRenderable extends BoxRenderable {
           currentX,
           2,
           grayColor,
-          backgroundColor
+          backgroundColor,
         );
 
         // Clear the middle (open bottom)
@@ -254,7 +272,7 @@ export class TabMenuRenderable extends BoxRenderable {
             currentX + i,
             2,
             backgroundColor,
-            backgroundColor
+            backgroundColor,
           );
         }
 
@@ -264,7 +282,7 @@ export class TabMenuRenderable extends BoxRenderable {
           currentX + tabWidth - 1,
           2,
           grayColor,
-          backgroundColor
+          backgroundColor,
         );
       } else {
         // Unselected tab: draw T-junctions
@@ -274,7 +292,7 @@ export class TabMenuRenderable extends BoxRenderable {
           currentX,
           2,
           grayColor,
-          backgroundColor
+          backgroundColor,
         );
 
         // Right T-junction
@@ -283,7 +301,7 @@ export class TabMenuRenderable extends BoxRenderable {
           currentX + tabWidth - 1,
           2,
           grayColor,
-          backgroundColor
+          backgroundColor,
         );
       }
 

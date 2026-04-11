@@ -6,4 +6,6 @@ export type Flags = {
   labels?: string[];
   reviewed: boolean;
   hideChecks: boolean;
+  showLabels: boolean;
+  debug: boolean;
 };

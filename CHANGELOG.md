@@ -1,4 +1,29 @@
 # Changelog
+## v5.1.0 - 
+
+### Fixed
+- Pointer cursor when hovering links
+- Console is now hidden again after successful data fetches following previous errors
+
+### Added
+- Splash screen shown during initial load
+
+### Changed
+- New loading spinner
+- Updated tab labels to support optional counts and cleaner initial rendering
+- Updated default CLI options:
+  - `--interval` now defaults to `60`
+  - `--notify` now defaults to enabled
+  - `--reviewed` now defaults to enabled
+  - `--mentioned` now defaults to enabled
+- Improved label rendering style in pull request cards
+
+### Maintenance
+- Bumped `@opentui/core` to `^0.1.97`
+- Bumped `bun-types` to `1.3.10`
+- Updated release workflow to use Bun `1.3.10`
+- Switched lockfile from `bun.lockb` to `bun.lock`
+
 ## v5.0.2 - 2025-12-16
 
 ### Fixed
