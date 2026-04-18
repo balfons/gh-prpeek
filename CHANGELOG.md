@@ -1,5 +1,28 @@
 # Changelog
-## v5.1.0 - 
+## v5.1.1 - 2026-04-18
+
+### Added
+- Keyboard navigation — use ↑/↓ to move between PRs and ↵ to open the selected PR in the browser
+- Validate `--repos` flag format early — exits with a clear error message if any repo does not match `OWNER/REPO`
+- Display current version number
+
+### Fixed
+- Fix `getPrNumberIndent` returning `-Infinity` when PR list is empty
+- Fix memory leak in `CommandsRenderable` — keypress handler now unregistered on destroy
+- Fix O(n²) comment lookup in `getNewComments` — replaced `.find()` inside `.filter()` with a `Set`
+- Fix typo: renamed exported `notifyFailingePrs` to `notifyFailingPrs`
+- Fix `commaSeparatedList` not trimming whitespace around repo names
+- Fix `isLoading` lock set too late in `runProgram`, allowing re-entrant calls
+- Fix error in `makeGhJsonRequest` catch block — use `String()` instead of `.toString()` on stderr
+- Fix PR title alignment — apply left margin based on PR number digit width
+
+### Changed
+- Pending checks indicator changed from `-` to `◌`
+- Review requested indicator changed from `•` to `⊙`
+- Conflicts indicator changed from `×` to `⊘`
+- Comments indicator changed from `◆` to `✎`
+
+## v5.1.0 - 2026-04-11
 
 ### Fixed
 - Pointer cursor when hovering links

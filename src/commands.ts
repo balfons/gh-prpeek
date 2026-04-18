@@ -4,14 +4,14 @@ import { PullRequestResponse } from "./models/GitHubResponse";
 
 const makeGhJsonRequest = async <T>(
   command: ShellPromise,
-  args: Record<string, string>
+  args: Record<string, string>,
 ): Promise<T> => {
   const env = { ...process.env, GH_PAGER: "", ...args };
   try {
     return await command.env(env).json();
   } catch (error: any) {
     if (error.stderr) {
-      throw error.stderr.toString();
+      throw String(error.stderr);
     }
 
     throw error;
@@ -72,7 +72,7 @@ export const fetchMyPullRequests = async (repo: string) => {
 
 export const fetchRequestingReviewPullRequests = async (
   repo: string,
-  labels: string[]
+  labels: string[],
 ) => {
   const command = $`gh pr list --repo $REPO --search $SEARCH --json $FIELDS`;
   let queries = ["review-requested:@me"];

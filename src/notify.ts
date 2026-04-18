@@ -38,11 +38,9 @@ const getNewComments = (
       const previousPr = findPr(previousPrs, pr);
       const previousComments = previousPr ? previousPr.reviewComments : [];
 
+      const previousCommentIds = new Set(previousComments.map((c) => c.id));
       const newComments = pr.reviewComments.filter(
-        (comment) =>
-          !previousComments.find(
-            (previousComment) => previousComment.id === comment.id
-          )
+        (comment) => !previousCommentIds.has(comment.id)
       );
 
       if (newComments.length > 0) {
@@ -94,7 +92,7 @@ export const notifyMergablePrs = (
   }
 };
 
-export const notifyFailingePrs = (
+export const notifyFailingPrs = (
   yourPreviousPrs: PullRequest[],
   yourPrs: PullRequest[]
 ) => {

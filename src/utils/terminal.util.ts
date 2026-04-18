@@ -1,3 +1,3 @@
 export const commaSeparatedList = (value: string): string[] => {
-  return value.split(",");
+  return value.split(",").map((item) => item.trim());
 };

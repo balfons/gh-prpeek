@@ -30,6 +30,9 @@ export interface PullRequestRenderableOptions extends BoxOptions {
   showLabels?: boolean;
 }
 export class PullRequestRenderable extends BoxRenderable {
+  private readonly titleRenderable: TextRenderable;
+  private readonly pr: PullRequest;
+
   constructor(ctx: RenderContext, options: PullRequestRenderableOptions) {
     const {
       indent,
@@ -43,6 +46,8 @@ export class PullRequestRenderable extends BoxRenderable {
       id: `pr-container-${pr.number}`,
       ...boxOptions,
     });
+
+    this.pr = pr;
 
     const indent1 = indent + 2;
     const indent2 = indent;
@@ -84,22 +89,25 @@ export class PullRequestRenderable extends BoxRenderable {
     const prNumberRenderable = new TextRenderable(ctx, {
       content: t`${pr.isDraft ? dim(`#${pr.number}`) : green(`#${pr.number}`)}`,
     });
+
     // PR Title
-    const titleRenderable = new TextRenderable(ctx, {
+    const titleIndent = indent - pr.number.toString().length;
+    this.titleRenderable = new TextRenderable(ctx, {
       content: pr.title,
       width: pr.title.length,
+      marginLeft: titleIndent > 0 ? titleIndent : 0,
     });
-    titleRenderable.onMouseUp = () => {
+    this.titleRenderable.onMouseUp = () => {
       open(pr.url);
     };
-    titleRenderable.onMouseOver = () => {
+    this.titleRenderable.onMouseOver = () => {
       if (this.isDestroyed) return;
-      titleRenderable.content = t`${underline(pr.title)}`;
+      this.titleRenderable.content = t`${underline(pr.title)}`;
       this.ctx.setMousePointer("pointer");
     };
-    titleRenderable.onMouseOut = () => {
+    this.titleRenderable.onMouseOut = () => {
       if (this.isDestroyed) return;
-      titleRenderable.content = pr.title;
+      this.titleRenderable.content = pr.title;
       this.ctx.setMousePointer("default");
     };
 
@@ -175,7 +183,7 @@ export class PullRequestRenderable extends BoxRenderable {
     });
 
     row1.add(prNumberRenderable);
-    row1.add(titleRenderable);
+    row1.add(this.titleRenderable);
 
     row2.add(authorRenderable);
     row2.add(repoRenderable);
@@ -200,6 +208,17 @@ export class PullRequestRenderable extends BoxRenderable {
     }
   }
 
+  setSelected(selected: boolean): void {
+    if (this.isDestroyed) return;
+    this.titleRenderable.content = selected
+      ? t`${underline(this.pr.title)}`
+      : this.pr.title;
+  }
+
+  get prUrl(): string {
+    return this.pr.url;
+  }
+
   private getStatusCheckText(pr: PullRequest): StyledText {
     let statusCheck: StyledText = t``;
 
@@ -208,7 +227,7 @@ export class PullRequestRenderable extends BoxRenderable {
         statusCheck = t`${green("✓")} ${green("Checks passing")}`;
         break;
       case CheckStatus.PENDING:
-        statusCheck = t`${yellow("-")} ${yellow("Checks pending")}`;
+        statusCheck = t`${yellow("◌")} ${yellow("Checks pending")}`;
         break;
       case CheckStatus.FAILURE:
         statusCheck = t`${red("×")} ${red(
@@ -226,7 +245,7 @@ export class PullRequestRenderable extends BoxRenderable {
     const count = pr.reviewComments.length;
     const text = count === 1 ? "Comment" : "Comments";
 
-    return `◆ ${count} ${text}`;
+    return `✎ ${count} ${text}`;
   }
 
   private getReviewDecisionText(pr: PullRequest): StyledText {
@@ -244,7 +263,7 @@ export class PullRequestRenderable extends BoxRenderable {
     } else if (pr.reviewDecision === "APPROVED") {
       reviewDecision = t`${green(`✓ ${pr.approvedCount} Approved`)}`;
     } else if (pr.isReviewRequested) {
-      reviewDecision = t`${magenta("• Review requested")}`;
+      reviewDecision = t`${magenta("⊙ Review requested")}`;
     }
 
     return reviewDecision;
@@ -255,7 +274,7 @@ export class PullRequestRenderable extends BoxRenderable {
     if (pr.isMergable) {
       mergeableState = t`${green("↢ Mergeable")}`;
     } else if (pr.hasConflicts) {
-      mergeableState = t`${red("× Conflicts")}`;
+      mergeableState = t`${red("⊘ Conflicts")}`;
     }
 
     return mergeableState;

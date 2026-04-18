@@ -2,9 +2,10 @@
   "name": "gh-prpeek",
   "module": "index.ts",
   "type": "module",
-  "version": "v5.1.0",
+  "version": "v5.1.1",
   "scripts": {
     "start": "bun run index.ts",
+    "start:mock": "USE_MOCK_DATA=true bun run index.ts",
     "compile": "bun build ./index.ts --compile --outfile dist/prpeek"
   },
   "devDependencies": {

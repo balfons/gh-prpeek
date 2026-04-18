@@ -8,6 +8,7 @@ import {
   ConsolePosition,
   CliRenderer,
   StyledText,
+  TextRenderable,
 } from "@opentui/core";
 import {
   formatRepoNames,
@@ -28,7 +29,7 @@ import {
 import packageJson from "./package.json";
 import { commaSeparatedList } from "./src/utils/terminal.util";
 import {
-  notifyFailingePrs,
+  notifyFailingPrs,
   notifyMergablePrs,
   notifyNewCommentsPrs,
   notifyNewPrs,
@@ -45,6 +46,8 @@ import { CommandsRenderable } from "./src/components/CommandsRenderable";
 import { SpinnerRenderable } from "./src/components/SpinnerRenderable";
 import { PullRequestRenderable } from "./src/components/PullRequestRenderable";
 import { SplashScreenRenderable } from "./src/components/SplashScreenRenderable";
+import open from "open";
+import { prMocks } from "./src/mocks/mocks";
 
 program
   .version(packageJson.version)
@@ -80,6 +83,9 @@ let statusContainer: BoxRenderable;
 let splashScreen: SplashScreenRenderable;
 let commands: CommandsRenderable;
 let prRenderables: PullRequestRenderable[] = [];
+let selectedPrIndex: number = -1;
+
+let versionText: TextRenderable;
 
 let latestRelease: string | undefined;
 let lastUpdatedDate: string = "Updating...";
@@ -103,9 +109,18 @@ const intervalAsMillis = Number(interval * 1000);
 
 const repoNames = formatRepoNames(repos);
 
+const invalidRepos = repos.filter((r) => !/^[^/]+\/[^/]+$/.test(r.trim()));
+if (invalidRepos.length > 0) {
+  program.error(
+    `Invalid repo format: ${invalidRepos.join(", ")}. Expected OWNER/REPO`,
+  );
+}
+
 if (isNaN(intervalAsMillis)) {
   program.error("Interval must be a number");
 }
+
+let useMockData = process.env.USE_MOCK_DATA === "true";
 
 let previousPrs: PullRequest[] = [];
 let myPreviousPrs: PullRequest[] = [];
@@ -197,7 +212,10 @@ const initAppRenderables = (renderer: CliRenderer) => {
     menuBackgroundColor: getHexColor("defaultBackground"),
     selectedOptionTextColor: getHexColor("magenta"),
     optionTextColor: getHexColor("white"),
-    onSelectionChanged: () => rerender(),
+    onSelectionChanged: () => {
+      selectedPrIndex = -1;
+      rerender();
+    },
     onItemSelected: () => rerender(),
   });
 
@@ -217,14 +235,65 @@ const initAppRenderables = (renderer: CliRenderer) => {
         description: "Switch tab",
       },
       {
+        key: "↑/↓",
+        description: "Navigate PRs",
+        keyName: "up",
+        action() {
+          if (prRenderables.length === 0) return;
+          const prev = selectedPrIndex;
+          if (prev <= 0) {
+            selectedPrIndex = 0;
+          } else {
+            selectedPrIndex = prev - 1;
+          }
+          if (prev !== selectedPrIndex) {
+            if (prev >= 0) prRenderables[prev].setSelected(false);
+            prRenderables[selectedPrIndex].setSelected(true);
+            prListContainer.scrollChildIntoView(
+              prRenderables[selectedPrIndex].id,
+            );
+          }
+        },
+      },
+      {
+        key: "",
+        description: "",
+        keyName: "down",
+        action() {
+          if (prRenderables.length === 0) return;
+          const prev = selectedPrIndex;
+          selectedPrIndex = Math.min(
+            prRenderables.length - 1,
+            selectedPrIndex + 1,
+          );
+          if (prev !== selectedPrIndex) {
+            if (prev >= 0 && prev < prRenderables.length) {
+              prRenderables[prev].setSelected(false);
+            }
+            prRenderables[selectedPrIndex].setSelected(true);
+            prListContainer.scrollChildIntoView(
+              prRenderables[selectedPrIndex].id,
+            );
+          }
+        },
+      },
+      {
+        key: "↵",
+        description: "Open PR",
+        keyName: "return",
+        action() {
+          if (selectedPrIndex < 0 || selectedPrIndex >= prRenderables.length)
+            return;
+          open(prRenderables[selectedPrIndex].prUrl);
+        },
+      },
+      {
         key: "r",
         description: "Refresh",
         keyName: "r",
         action() {
-          if (!isLoading) {
-            console.log("Refreshing...");
-            runProgram(false);
-          }
+          console.log("Refreshing...");
+          runProgram(false);
         },
       },
       {
@@ -234,6 +303,16 @@ const initAppRenderables = (renderer: CliRenderer) => {
     ],
   });
 
+  versionText = new TextRenderable(renderer, {
+    id: "version-text",
+    content: t`${packageJson.version}`,
+    fg: "gray",
+    bg: getHexColor("defaultBackground"),
+    position: "absolute",
+    right: 2,
+    top: 1,
+  });
+
   return {
     render() {
       renderer.root.add(tabMenu);
@@ -241,6 +320,7 @@ const initAppRenderables = (renderer: CliRenderer) => {
       statusContainer.add(lastUpdatedSpinnerText);
       statusContainer.add(commands);
       renderer.root.add(statusContainer);
+      renderer.root.add(versionText);
       tabMenu.focus();
     },
   };
@@ -248,12 +328,12 @@ const initAppRenderables = (renderer: CliRenderer) => {
 
 const runProgram = async (firstRun: boolean) => {
   if (isLoading) return;
+  isLoading = true;
 
   if (timeout) {
     clearTimeout(timeout);
   }
 
-  isLoading = true;
   lastUpdatedSpinnerText.startSpinner(lastUpdatedDate);
 
   const prsCreatedByMePromises = repos.map(fetchMyPullRequests);
@@ -267,7 +347,10 @@ const runProgram = async (firstRun: boolean) => {
     [myPrs, requestingReviewPrs, reviewedPrs, mentionedPrs] = await Promise.all(
       [
         (await Promise.all(prsCreatedByMePromises)).flat(),
-        (await Promise.all(prsRequestingReviewPromises)).flat(),
+        (useMockData
+          ? prMocks
+          : await Promise.all(prsRequestingReviewPromises)
+        ).flat(),
         (await Promise.all(reviewedPromises)).flat(),
         (await Promise.all(mentionedPromises)).flat(),
       ],
@@ -285,7 +368,7 @@ const runProgram = async (firstRun: boolean) => {
     if (!firstRun && notify && hasHadFirstSuccessfulLoad) {
       notifyNewPrs(previousPrs, newPrs);
       notifyMergablePrs(myPreviousPrs, myPrs);
-      notifyFailingePrs(myPreviousPrs, myPrs);
+      notifyFailingPrs(myPreviousPrs, myPrs);
       notifyNewCommentsPrs(myPreviousPrs, myPrs);
     }
 
@@ -377,6 +460,10 @@ const rerender = () => {
     showLabels,
   });
   prRenderables.forEach((pr) => prListContainer.add(pr));
+
+  if (selectedPrIndex >= 0 && selectedPrIndex < prRenderables.length) {
+    prRenderables[selectedPrIndex].setSelected(true);
+  }
 };
 
 const renderer = await createCliRenderer({

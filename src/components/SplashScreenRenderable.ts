@@ -24,7 +24,7 @@ export class SplashScreenRenderable extends BoxRenderable {
     this.bodyRows = bodyRows;
 
     this.logo = new ASCIIFontRenderable(ctx, {
-      id: "counter",
+      id: "splash-screen-logo",
       text: asciiText,
       font: "block",
       color: asciiColor,

@@ -2,12 +2,13 @@ import { PullRequest } from "../models/PullRequest";
 import { CliRenderer } from "@opentui/core";
 import { PullRequestRenderable } from "../components/PullRequestRenderable";
 
-
 export const formatRepoNames = (repos: string[]): string[] =>
   repos.map((repo) => repo.split("/").pop()).filter((r) => r !== undefined);
 
 export const getPrNumberIndent = (prs: PullRequest[]): number => {
-  return Math.max(...prs.map((pr) => String(pr.number).length));
+  return prs.length === 0
+    ? 0
+    : Math.max(...prs.map((pr) => String(pr.number).length));
 };
 
 export const formattedDateText = () => {
@@ -24,10 +25,10 @@ export const formattedDateText = () => {
   };
 
   const formattedDate = new Intl.DateTimeFormat("se-sv", dateOptions).format(
-    date
+    date,
   );
   const formattedTime = new Intl.DateTimeFormat("se-sv", timeOptions).format(
-    date
+    date,
   );
 
   return `${formattedDate} ${formattedTime}`;
@@ -53,6 +54,6 @@ export const getPrRenderables = ({
         showLabels,
         indent,
         pr,
-      })
+      }),
   );
 };

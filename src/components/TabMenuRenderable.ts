@@ -81,8 +81,6 @@ export class TabMenuRenderable extends BoxRenderable {
 
     this.add(this.tabs);
     this.add(this.canvas);
-    // Add tabs to canvas
-    // this.canvas.add(this.tabs);
 
     // Set up event listeners
     if (options.onSelectionChanged) {
@@ -105,13 +103,6 @@ export class TabMenuRenderable extends BoxRenderable {
       );
     }
   }
-
-  /**
-   * Get the root renderable to add to the renderer
-   */
-  //   getRenderable(): FrameBufferRenderable {
-  //     return this.canvas;
-  //   }
 
   /**
    * Set the tab options

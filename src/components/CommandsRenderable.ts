@@ -1,9 +1,8 @@
 import {
   BoxOptions,
   BoxRenderable,
-  CliRenderer,
   dim,
-  RenderableOptions,
+  KeyEvent,
   RenderContext,
   t,
   TextRenderable,
@@ -20,6 +19,9 @@ export interface CommandsRenderableOptions extends BoxOptions {
   commands: Command[];
 }
 export class CommandsRenderable extends BoxRenderable {
+  private readonly _keyHandler: RenderContext["keyInput"];
+  private readonly _keypressListener: (key: KeyEvent) => void;
+
   constructor(ctx: RenderContext, options: CommandsRenderableOptions) {
     const { commands, ...boxOptions } = options;
 
@@ -29,10 +31,11 @@ export class CommandsRenderable extends BoxRenderable {
     });
 
     options.commands
+      .filter((command) => command.key !== "")
       .map((command) => {
         return new TextRenderable(ctx, {
           content: t`${dim("[")}${yellow(command.key)}${dim(
-            `: ${command.description}]`
+            `: ${command.description}]`,
           )}`,
           bg: getHexColor("defaultBackground"),
         });
@@ -41,13 +44,19 @@ export class CommandsRenderable extends BoxRenderable {
         this.add(commandsText);
       });
 
-    const keyHandler = ctx.keyInput;
-    keyHandler.on("keypress", (key) => {
+    this._keyHandler = ctx.keyInput;
+    this._keypressListener = (key) => {
       options.commands.forEach((command) => {
         if (key.name === command.keyName) {
           command.action?.();
         }
       });
-    });
+    };
+    this._keyHandler.on("keypress", this._keypressListener);
+  }
+
+  protected destroySelf(): void {
+    this._keyHandler.off("keypress", this._keypressListener);
+    super.destroySelf();
   }
 }
