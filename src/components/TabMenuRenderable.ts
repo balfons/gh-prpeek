@@ -215,9 +215,7 @@ export class TabMenuRenderable extends BoxRenderable {
     this.canvas.frameBuffer.drawText("╭", 0, 2, grayColor, backgroundColor);
 
     // Draw the bottom line from position 1 to start of tabs
-    for (let i = 1; i < 2; i++) {
-      this.canvas.frameBuffer.drawText("─", i, 2, grayColor, backgroundColor);
-    }
+    this.canvas.frameBuffer.drawText("─", 1, 2, grayColor, backgroundColor);
 
     // Draw the middle section with tabs
     for (let i = 2; i < currentX; i++) {
