@@ -4,7 +4,7 @@ import { CheckStatus, PullRequest, ReviewComment } from "./models/PullRequest";
 const findPr = (allPrs: PullRequest[], prToFind: PullRequest) =>
   allPrs.find(
     ({ number, repositoryId }) =>
-      prToFind.number === number && prToFind.repositoryId === repositoryId
+      prToFind.number === number && prToFind.repositoryId === repositoryId,
   );
 
 const newPrs = (previousPrs: PullRequest[], prs: PullRequest[]) => {
@@ -31,7 +31,7 @@ const newFailingPrs = (previousPrs: PullRequest[], prs: PullRequest[]) => {
 
 const getNewComments = (
   previousPrs: PullRequest[],
-  prs: PullRequest[]
+  prs: PullRequest[],
 ): { pullRequest: PullRequest; newComments: ReviewComment[] }[] =>
   prs.reduce<{ pullRequest: PullRequest; newComments: ReviewComment[] }[]>(
     (prsWithNewComments, pr) => {
@@ -40,7 +40,7 @@ const getNewComments = (
 
       const previousCommentIds = new Set(previousComments.map((c) => c.id));
       const newComments = pr.reviewComments.filter(
-        (comment) => !previousCommentIds.has(comment.id)
+        (comment) => !previousCommentIds.has(comment.id),
       );
 
       if (newComments.length > 0) {
@@ -49,12 +49,12 @@ const getNewComments = (
 
       return prsWithNewComments;
     },
-    []
+    [],
   );
 
 export const notifyNewPrs = (
   previousPrs: PullRequest[],
-  prs: PullRequest[]
+  prs: PullRequest[],
 ) => {
   const allNew = newPrs(previousPrs, prs);
 
@@ -74,7 +74,7 @@ export const notifyNewPrs = (
 
 export const notifyMergablePrs = (
   yourPreviousPrs: PullRequest[],
-  yourPrs: PullRequest[]
+  yourPrs: PullRequest[],
 ) => {
   const mergablePrs = newMergablePrs(yourPreviousPrs, yourPrs);
 
@@ -94,7 +94,7 @@ export const notifyMergablePrs = (
 
 export const notifyFailingPrs = (
   yourPreviousPrs: PullRequest[],
-  yourPrs: PullRequest[]
+  yourPrs: PullRequest[],
 ) => {
   const failingPrs = newFailingPrs(yourPreviousPrs, yourPrs);
 
@@ -114,12 +114,12 @@ export const notifyFailingPrs = (
 
 export const notifyNewCommentsPrs = (
   yourPreviousPrs: PullRequest[],
-  yourPrs: PullRequest[]
+  yourPrs: PullRequest[],
 ) => {
-  const newComments = getNewComments(yourPreviousPrs, yourPrs);
+  const newCommentsPrs = getNewComments(yourPreviousPrs, yourPrs);
 
-  if (newComments.length > 0) {
-    newComments.forEach(({ pullRequest, newComments }) => {
+  if (newCommentsPrs.length > 0) {
+    newCommentsPrs.forEach(({ pullRequest, newComments }) => {
       notifier.notify({
         title: `💬 New comment: #${pullRequest.number}`,
         subtitle: newComments.map((c) => c.author).join(", "),
