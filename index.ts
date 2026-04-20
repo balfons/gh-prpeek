@@ -120,7 +120,7 @@ if (isNaN(intervalAsMillis)) {
   program.error("Interval must be a number");
 }
 
-let useMockData = process.env.USE_MOCK_DATA === "true";
+const useMockData = process.env.USE_MOCK_DATA === "true";
 
 let previousPrs: PullRequest[] = [];
 let myPreviousPrs: PullRequest[] = [];
