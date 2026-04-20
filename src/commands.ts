@@ -38,7 +38,7 @@ export const prFields = [
 ] as const;
 
 export const fetchMentionedPrs = async (repo: string) => {
-  const command = $`gh pr list --search "mentions:@me -author:@me " --repo $REPO --json $FIELDS`;
+  const command = $`gh pr list --search "mentions:@me -author:@me" --repo $REPO --json $FIELDS`;
 
   const pullRequests = await makeGhJsonRequest<PullRequestResponse[]>(command, {
     REPO: repo,
@@ -49,7 +49,7 @@ export const fetchMentionedPrs = async (repo: string) => {
 };
 
 export const fetchReviewedPrs = async (repo: string) => {
-  const command = $`gh pr list --search "reviewed-by:@me -author:@me " --repo $REPO --json $FIELDS`;
+  const command = $`gh pr list --search "reviewed-by:@me -author:@me" --repo $REPO --json $FIELDS`;
 
   const pullRequests = await makeGhJsonRequest<PullRequestResponse[]>(command, {
     REPO: repo,
