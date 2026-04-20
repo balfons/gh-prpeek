@@ -346,13 +346,12 @@ const runProgram = async (firstRun: boolean) => {
   try {
     [myPrs, requestingReviewPrs, reviewedPrs, mentionedPrs] = await Promise.all(
       [
-        (await Promise.all(prsCreatedByMePromises)).flat(),
-        (useMockData
-          ? prMocks
-          : await Promise.all(prsRequestingReviewPromises)
-        ).flat(),
-        (await Promise.all(reviewedPromises)).flat(),
-        (await Promise.all(mentionedPromises)).flat(),
+        Promise.all(prsCreatedByMePromises).then((prs) => prs.flat()),
+        useMockData
+          ? Promise.resolve(prMocks)
+          : Promise.all(prsRequestingReviewPromises).then((prs) => prs.flat()),
+        Promise.all(reviewedPromises).then((prs) => prs.flat()),
+        Promise.all(mentionedPromises).then((prs) => prs.flat()),
       ],
     );
 
