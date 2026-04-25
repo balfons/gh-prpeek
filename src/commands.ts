@@ -11,7 +11,8 @@ const makeGhJsonRequest = async <T>(
     return await command.env(env).json();
   } catch (error: any) {
     if (error.stderr) {
-      throw String(error.stderr);
+      const message = String(error.stderr);
+      throw new Error(message, { cause: error });
     }
 
     throw error;
