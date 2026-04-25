@@ -156,7 +156,6 @@ const initSplashScreen = async (renderer: CliRenderer) => {
     justifyContent: "center",
     flexDirection: "column",
     height: "100%",
-    backgroundColor: "transparent",
     asciiText: "prpeek",
     bodyRows,
   });
@@ -209,7 +208,6 @@ const initAppRenderables = (renderer: CliRenderer) => {
     left: 0,
     top: 0,
     menuBorderColor: "#808080",
-    menuBackgroundColor: getHexColor("defaultBackground"),
     selectedOptionTextColor: getHexColor("magenta"),
     optionTextColor: getHexColor("white"),
     onSelectionChanged: () => {
@@ -222,7 +220,6 @@ const initAppRenderables = (renderer: CliRenderer) => {
   lastUpdatedSpinnerText = new SpinnerRenderable(renderer, {
     id: "last-updated-spinner-text",
     text: t`[${green("✓")} ${dim(lastUpdatedDate)}]`,
-    bg: getHexColor("defaultBackground"),
   });
 
   commands = new CommandsRenderable(renderer, {
@@ -307,7 +304,6 @@ const initAppRenderables = (renderer: CliRenderer) => {
     id: "version-text",
     content: t`${packageJson.version}`,
     fg: "gray",
-    bg: getHexColor("defaultBackground"),
     position: "absolute",
     right: 2,
     top: 1,
@@ -322,6 +318,12 @@ const initAppRenderables = (renderer: CliRenderer) => {
       renderer.root.add(statusContainer);
       renderer.root.add(versionText);
       tabMenu.focus();
+      setTabOptions({
+        requestingReviewPrs,
+        reviewedPrs,
+        myPrs,
+        mentionedPrs,
+      });
     },
   };
 };
@@ -399,6 +401,11 @@ const runProgram = async (firstRun: boolean) => {
   } catch (error) {
     isLoading = false;
     lastUpdatedSpinnerText.stopSpinnerWithError(lastUpdatedDate);
+
+    if (debug) {
+      renderer.console.show();
+      console.error(error);
+    }
   }
 
   timeout = setTimeout(() => runProgram(false), intervalAsMillis);

@@ -21,7 +21,6 @@ export interface TabOption extends TabSelectOption {
 export interface TabMenuRenderableOptions extends BoxOptions {
   renderer: CliRenderer;
   menuBorderColor?: string;
-  menuBackgroundColor?: string;
   selectedOptionTextColor?: string;
   optionTextColor?: string;
   onSelectionChanged?: (index: number, option: TabSelectOption) => void;
@@ -33,7 +32,6 @@ export class TabMenuRenderable extends BoxRenderable {
   private tabs: TabSelectRenderable;
   private renderer: CliRenderer;
   private menuBorderColor: string;
-  private menuBackgroundColor: string;
   private selectedOptionTextColor: string;
   private optionTextColor: string;
 
@@ -46,13 +44,10 @@ export class TabMenuRenderable extends BoxRenderable {
       left: options.left || 0,
       top: options.top || 0,
       zIndex: options.zIndex,
-      backgroundColor: "transparent",
     });
 
     this.renderer = options.renderer;
     this.menuBorderColor = options.menuBorderColor || "#808080";
-    this.menuBackgroundColor =
-      options.menuBackgroundColor || getHexColor("defaultBackground");
     this.selectedOptionTextColor =
       options.selectedOptionTextColor || getHexColor("magenta");
     this.optionTextColor = options.optionTextColor || getHexColor("white");
@@ -76,7 +71,6 @@ export class TabMenuRenderable extends BoxRenderable {
       visible: false,
       marginTop: options.marginTop !== undefined ? options.marginTop : 1,
       options: [],
-      backgroundColor: "transparent",
     });
 
     this.add(this.tabs);
@@ -134,9 +128,9 @@ export class TabMenuRenderable extends BoxRenderable {
    * Update the tab rendering
    */
   private updateTabs(): void {
-    const backgroundColor = RGBA.fromHex(this.menuBackgroundColor);
+    const backgroundColor = RGBA.fromValues(0, 0, 0, 0);
     this.canvas.frameBuffer.clear(backgroundColor);
-    this.canvas.frameBuffer.respectAlpha = true;
+    this.canvas.frameBuffer.setRespectAlpha(true);
     const selectedIndex = this.tabs.getSelectedIndex();
     let currentX = 2;
 

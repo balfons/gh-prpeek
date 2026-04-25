@@ -7,7 +7,7 @@ import {
   t,
   TextRenderable,
 } from "@opentui/core";
-import { getHexColor, yellow } from "../utils/color.util";
+import { yellow } from "../utils/color.util";
 
 type Command = {
   key: string;
@@ -35,9 +35,8 @@ export class CommandsRenderable extends BoxRenderable {
       .map((command) => {
         return new TextRenderable(ctx, {
           content: t`${dim("[")}${yellow(command.key)}${dim(
-            `: ${command.description}]`,
+            `: ${command.description.replaceAll(" ", " ")}]`,
           )}`,
-          bg: getHexColor("defaultBackground"),
         });
       })
       .forEach((commandsText) => {
