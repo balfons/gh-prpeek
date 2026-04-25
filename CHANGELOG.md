@@ -1,4 +1,19 @@
 # Changelog
+## v5.1.2 - 2026-04-25
+
+### Fixed
+- Fix backgrounds for transparent terminal
+- Fix error message
+- Fix broken parallelism when fetching PRs
+- Fix variable shadowing in `notify.ts`
+
+### Performance
+- Evaluate color keys before loop instead of on every iteration in `color.util.ts`
+
+### Maintenance
+- Remove unnecessary loop in `TabMenuRenderable`
+- Fix release title in CI workflow
+
 ## v5.1.1 - 2026-04-18
 
 ### Added
