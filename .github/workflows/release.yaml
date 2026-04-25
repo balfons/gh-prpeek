@@ -72,7 +72,7 @@ jobs:
 
           VERSION="${TAG#v}"
 
-          TITLE="${GITHUB_REPOSITORY#*/} ${VERSION}"
+          TITLE="${VERSION}"
 
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --title "$TITLE" --notes-file release-notes.md
