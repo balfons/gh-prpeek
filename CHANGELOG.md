@@ -1,9 +1,10 @@
 # Changelog
-## v5.1.3 -
+## v5.1.3 - 2026-05-06
 
 ### Added
 - `--team` flag — also shows PRs reviewed by a team member (`ORG/TEAM`), useful when multiple people share review duties on the same PRs
 - Show check counts in status line (e.g. `2/5 Checks passing`, `1/5 Checks pending`)
+- Approval indicator now appends `(You)` when you are one of the approvers (e.g. `✓ 2 Approved (You)`)
 
 ### Fixed
 - Handle `CANCELLED` and empty-string check conclusions in `StatusCheckRollup`

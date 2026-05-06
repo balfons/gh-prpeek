@@ -2,7 +2,7 @@
   "name": "gh-prpeek",
   "module": "index.ts",
   "type": "module",
-  "version": "v5.1.2",
+  "version": "v5.1.3",
   "scripts": {
     "start": "bun run index.ts",
     "start:mock": "USE_MOCK_DATA=true bun run index.ts",
