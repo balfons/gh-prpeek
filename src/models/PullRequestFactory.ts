@@ -1,5 +1,6 @@
 import { PullRequestResponse } from "./GitHubResponse";
 import { CheckStatus, PullRequest } from "./PullRequest";
+import { User } from "./User";
 
 const getCheckStatus = (pr: PullRequestResponse): CheckStatus => {
   const allChecksPassing = pr.statusCheckRollup.every(
@@ -33,7 +34,7 @@ const getCheckStatus = (pr: PullRequestResponse): CheckStatus => {
   return CheckStatus.NONE;
 };
 
-const from = (pr: PullRequestResponse): PullRequest => {
+const from = (pr: PullRequestResponse, activeUser: User): PullRequest => {
   const title = pr.title;
   const number = pr.number;
   const additions = pr.additions;
@@ -53,6 +54,11 @@ const from = (pr: PullRequestResponse): PullRequest => {
     (count, review) => (review.state === "APPROVED" ? count + 1 : count),
     0,
   );
+  const approvedByMe = pr.reviews.some(
+    (review) =>
+      review.state === "APPROVED" && review.author.login === activeUser.login,
+  );
+
   const requestedChangeCount = pr.reviews.reduce(
     (count, review) =>
       review.state === "CHANGES_REQUESTED" ? count + 1 : count,
@@ -119,6 +125,7 @@ const from = (pr: PullRequestResponse): PullRequest => {
     reviewComments,
     reviewDecision,
     approvedCount,
+    approvedByMe,
     requestedChangeCount,
     failingChecks,
     pendingChecks,

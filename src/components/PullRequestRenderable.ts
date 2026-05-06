@@ -261,7 +261,7 @@ export class PullRequestRenderable extends BoxRenderable {
 
       reviewDecision = t`${red(`⚑ ${pr.requestedChangeCount} ${text}`)}`;
     } else if (pr.reviewDecision === "APPROVED") {
-      reviewDecision = t`${green(`✓ ${pr.approvedCount} Approved`)}`;
+      reviewDecision = t`${green(`✓ ${pr.approvedCount} Approved ${pr.approvedByMe ? "(You)" : ""}`)}`;
     } else if (pr.isReviewRequested) {
       reviewDecision = t`${magenta("⊙ Review requested")}`;
     }

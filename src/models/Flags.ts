@@ -8,4 +8,5 @@ export type Flags = {
   hideChecks: boolean;
   showLabels: boolean;
   debug: boolean;
+  team?: string;
 };

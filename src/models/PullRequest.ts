@@ -34,6 +34,7 @@ export interface PullRequest {
   hasConflicts: boolean;
   reviewDecision: "APPROVED" | "REVIEW_REQUIRED" | "CHANGES_REQUESTED";
   approvedCount: number;
+  approvedByMe: boolean;
   reviewComments: ReviewComment[];
   requestedChangeCount: number;
   failingChecks: WorkflowCheck[];

@@ -1,4 +1,14 @@
 # Changelog
+## v5.1.3 -
+
+### Added
+- `--team` flag — also shows PRs reviewed by a team member (`ORG/TEAM`), useful when multiple people share review duties on the same PRs
+- Show check counts in status line (e.g. `2/5 Checks passing`, `1/5 Checks pending`)
+
+### Fixed
+- Handle `CANCELLED` and empty-string check conclusions in `StatusCheckRollup`
+- Fix pending check detection to require `conclusion === ""` (avoids treating cancelled checks as pending)
+
 ## v5.1.2 - 2026-04-25
 
 ### Fixed
