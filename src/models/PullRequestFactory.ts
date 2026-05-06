@@ -7,7 +7,7 @@ const getCheckStatus = (pr: PullRequestResponse): CheckStatus => {
       statusCheck.status === "COMPLETED" &&
       (statusCheck.conclusion === "SUCCESS" ||
         statusCheck.conclusion === "NEUTRAL" ||
-        statusCheck.conclusion === "SKIPPED")
+        statusCheck.conclusion === "SKIPPED"),
   );
 
   if (allChecksPassing) {
@@ -15,14 +15,15 @@ const getCheckStatus = (pr: PullRequestResponse): CheckStatus => {
   }
 
   const someArePending = pr.statusCheckRollup.some(
-    (statusCheck) => statusCheck.status === "IN_PROGRESS"
+    (statusCheck) =>
+      statusCheck.status === "IN_PROGRESS" && statusCheck.conclusion === "",
   );
   if (someArePending) {
     return CheckStatus.PENDING;
   }
 
   const someAreFailing = pr.statusCheckRollup.some(
-    (statusCheck) => statusCheck.conclusion === "FAILURE"
+    (statusCheck) => statusCheck.conclusion === "FAILURE",
   );
 
   if (someAreFailing) {
@@ -50,18 +51,40 @@ const from = (pr: PullRequestResponse): PullRequest => {
   const reviewDecision = pr.reviewDecision;
   const approvedCount = pr.reviews.reduce(
     (count, review) => (review.state === "APPROVED" ? count + 1 : count),
-    0
+    0,
   );
   const requestedChangeCount = pr.reviews.reduce(
     (count, review) =>
       review.state === "CHANGES_REQUESTED" ? count + 1 : count,
-    0
+    0,
   );
   const reviewComments = pr.reviews
     .filter((review) => review.state === "COMMENTED")
     .map((review) => ({
       author: review.author.login,
       id: review.id,
+    }));
+
+  const successfulChecks = pr.statusCheckRollup
+    .filter(
+      (statusCheck) =>
+        statusCheck.status === "COMPLETED" &&
+        statusCheck.conclusion === "SUCCESS",
+    )
+    .map((statusCheck) => ({
+      name: statusCheck.name,
+      url: statusCheck.detailsUrl,
+    }));
+
+  const pendingChecks = pr.statusCheckRollup
+    .filter(
+      (statusCheck) =>
+        statusCheck.status === "IN_PROGRESS" &&
+        statusCheck.conclusion !== "CANCELLED",
+    )
+    .map((statusCheck) => ({
+      name: statusCheck.name,
+      url: statusCheck.detailsUrl,
     }));
 
   const failingChecks = pr.statusCheckRollup
@@ -98,6 +121,8 @@ const from = (pr: PullRequestResponse): PullRequest => {
     approvedCount,
     requestedChangeCount,
     failingChecks,
+    pendingChecks,
+    successfulChecks,
     totalChecksCount,
     checkStatus,
   };

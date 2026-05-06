@@ -37,6 +37,8 @@ export interface PullRequest {
   reviewComments: ReviewComment[];
   requestedChangeCount: number;
   failingChecks: WorkflowCheck[];
+  pendingChecks: WorkflowCheck[];
+  successfulChecks: WorkflowCheck[];
   totalChecksCount: number;
   additions: number;
   deletions: number;

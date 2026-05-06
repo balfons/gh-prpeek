@@ -224,10 +224,10 @@ export class PullRequestRenderable extends BoxRenderable {
 
     switch (pr.checkStatus) {
       case CheckStatus.SUCCESSFUL:
-        statusCheck = t`${green("✓")} ${green("Checks passing")}`;
+        statusCheck = t`${green("✓")} ${green(`${pr.successfulChecks.length}/${pr.totalChecksCount} Checks passing`)}`;
         break;
       case CheckStatus.PENDING:
-        statusCheck = t`${yellow("◌")} ${yellow("Checks pending")}`;
+        statusCheck = t`${yellow("◌")} ${yellow(`${pr.pendingChecks.length}/${pr.totalChecksCount} Checks pending`)}`;
         break;
       case CheckStatus.FAILURE:
         statusCheck = t`${red("×")} ${red(

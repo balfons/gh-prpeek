@@ -1,7 +1,7 @@
 interface StatusCheckRollup {
   __typename: string;
   completedAt: string;
-  conclusion: "SUCCESS" | "FAILURE" | "NEUTRAL" | "SKIPPED";
+  conclusion: "SUCCESS" | "FAILURE" | "NEUTRAL" | "SKIPPED" | "CANCELLED" | "";
   detailsUrl: string;
   name: string;
   startedAt: string;
