@@ -1,12 +1,11 @@
 import {
-  dim,
-  RenderContext,
+  type RenderContext,
   StyledText,
   t,
-  TextOptions,
+  type TextOptions,
   TextRenderable,
 } from "@opentui/core";
-import { cyan, green, red } from "../utils/color.util";
+import { brightBlack, cyan, green, red } from "../utils/color.util";
 
 export interface SpinnerRenderableOptions extends TextOptions {
   text: StyledText;
@@ -37,11 +36,11 @@ export class SpinnerRenderable extends TextRenderable {
   ): StyledText {
     const icon =
       state === "loading"
-        ? cyan(this.spinnerFrames[this.spinnerIndex])
+        ? cyan(this.spinnerFrames[this.spinnerIndex] || "")
         : state === "success"
           ? green("✓")
           : red("✗");
-    return t`${dim("[")}${icon} ${dim(text.replaceAll(" ", " "))}${dim("]")}`;
+    return t`${brightBlack("[")}${icon} ${brightBlack(text.replaceAll(" ", " "))}${brightBlack("]")}`;
   }
 
   startSpinner(text: string) {
@@ -66,7 +65,7 @@ export class SpinnerRenderable extends TextRenderable {
     this.content = this.getStyledContent("error", text);
   }
 
-  destroy(): void {
+  override destroy(): void {
     this.clearSpinner();
   }
 }

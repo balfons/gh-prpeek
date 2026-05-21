@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { User } from "../models/User";
+import { type User } from "../models/User";
 
 const validateRepositoryFormat = (program: Command, repos: string[]): void => {
   const invalidRepos = repos.filter((r) => !/^[^/]+\/[^/]+$/.test(r.trim()));

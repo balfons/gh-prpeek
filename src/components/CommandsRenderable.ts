@@ -1,13 +1,13 @@
 import {
-  BoxOptions,
+  type BoxOptions,
   BoxRenderable,
   dim,
   KeyEvent,
-  RenderContext,
+  type RenderContext,
   t,
   TextRenderable,
 } from "@opentui/core";
-import { yellow } from "../utils/color.util";
+import { brightBlack, yellow } from "../utils/color.util";
 
 type Command = {
   key: string;
@@ -34,7 +34,7 @@ export class CommandsRenderable extends BoxRenderable {
       .filter((command) => command.key !== "")
       .map((command) => {
         return new TextRenderable(ctx, {
-          content: t`${dim("[")}${yellow(command.key)}${dim(
+          content: t`${brightBlack("[")}${yellow(command.key)}${brightBlack(
             `: ${command.description.replaceAll(" ", " ")}]`,
           )}`,
         });
@@ -54,7 +54,7 @@ export class CommandsRenderable extends BoxRenderable {
     this._keyHandler.on("keypress", this._keypressListener);
   }
 
-  protected destroySelf(): void {
+  protected override destroySelf(): void {
     this._keyHandler.off("keypress", this._keypressListener);
     super.destroySelf();
   }

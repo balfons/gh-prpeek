@@ -1,10 +1,10 @@
 import {
   ASCIIFontRenderable,
-  BoxOptions,
+  type BoxOptions,
   BoxRenderable,
-  ColorInput,
+  type ColorInput,
   KeyEvent,
-  RenderContext,
+  type RenderContext,
   StyledText,
   TextRenderable,
 } from "@opentui/core";

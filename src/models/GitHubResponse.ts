@@ -1,5 +1,5 @@
 import { prFields, userFields } from "../commands";
-import { GitHubPullRequest, GitHubUser } from "./GitHub";
+import type { GitHubPullRequest, GitHubUser } from "./GitHub";
 
 type PullRequestStatusResponseFields = (typeof prFields)[number];
 export type PullRequestResponse = Pick<

@@ -1,5 +1,5 @@
-import { UserResponse } from "./GitHubResponse";
-import { User } from "./User";
+import type { UserResponse } from "./GitHubResponse";
+import type { User } from "./User";
 
 const from = (ghUser: UserResponse): User => {
   return {

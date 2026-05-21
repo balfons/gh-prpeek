@@ -1,7 +1,10 @@
 import { $, ShellPromise } from "bun";
 import { PullRequestFactory } from "./models/PullRequestFactory";
-import { PullRequestResponse, UserResponse } from "./models/GitHubResponse";
-import { User } from "./models/User";
+import {
+  type PullRequestResponse,
+  type UserResponse,
+} from "./models/GitHubResponse";
+import { type User } from "./models/User";
 import { UserFactory } from "./models/UserFactory";
 
 const makeGhJsonRequest = async <T>(

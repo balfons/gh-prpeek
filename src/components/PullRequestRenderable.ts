@@ -1,11 +1,10 @@
 import {
   bg,
-  BoxOptions,
+  type BoxOptions,
   BoxRenderable,
-  dim,
   fg,
   hexToRgb,
-  RenderContext,
+  type RenderContext,
   StyledText,
   t,
   TextRenderable,
@@ -16,12 +15,14 @@ import {
   colorIsDarkSimple,
   cyan,
   green,
+  brightBlack,
   magenta,
   red,
   yellow,
+  fgText,
 } from "../utils/color.util";
 import open from "open";
-import { CheckStatus, PullRequest } from "../models/PullRequest";
+import { CheckStatus, type PullRequest } from "../models/PullRequest";
 
 export interface PullRequestRenderableOptions extends BoxOptions {
   indent: number;
@@ -87,14 +88,13 @@ export class PullRequestRenderable extends BoxRenderable {
 
     // PR Number
     const prNumberRenderable = new TextRenderable(ctx, {
-      content: t`${pr.isDraft ? dim(`#${pr.number}`) : green(`#${pr.number}`)}`,
+      content: t`${pr.isDraft ? brightBlack(`#${pr.number}`) : green(`#${pr.number}`)}`,
     });
 
     // PR Title
     const titleIndent = indent - pr.number.toString().length;
     this.titleRenderable = new TextRenderable(ctx, {
-      content: pr.title,
-      width: pr.title.length,
+      content: t`${fgText(pr.title)}`,
       marginLeft: titleIndent > 0 ? titleIndent : 0,
     });
     this.titleRenderable.onMouseUp = () => {
@@ -102,12 +102,12 @@ export class PullRequestRenderable extends BoxRenderable {
     };
     this.titleRenderable.onMouseOver = () => {
       if (this.isDestroyed) return;
-      this.titleRenderable.content = t`${underline(pr.title)}`;
+      this.titleRenderable.content = t`${underline(fgText(pr.title))}`;
       this.ctx.setMousePointer("pointer");
     };
     this.titleRenderable.onMouseOut = () => {
       if (this.isDestroyed) return;
-      this.titleRenderable.content = pr.title;
+      this.titleRenderable.content = t`${fgText(pr.title)}`;
       this.ctx.setMousePointer("default");
     };
 
@@ -211,8 +211,8 @@ export class PullRequestRenderable extends BoxRenderable {
   setSelected(selected: boolean): void {
     if (this.isDestroyed) return;
     this.titleRenderable.content = selected
-      ? t`${underline(this.pr.title)}`
-      : this.pr.title;
+      ? t`${underline(fgText(this.pr.title))}`
+      : t`${fgText(this.pr.title)}`;
   }
 
   get prUrl(): string {
@@ -241,11 +241,11 @@ export class PullRequestRenderable extends BoxRenderable {
     return statusCheck;
   }
 
-  private getCommentsText(pr: PullRequest): string {
+  private getCommentsText(pr: PullRequest): StyledText {
     const count = pr.reviewComments.length;
     const text = count === 1 ? "Comment" : "Comments";
 
-    return `✎ ${count} ${text}`;
+    return t`${fgText(`✎ ${count} ${text}`)}`;
   }
 
   private getReviewDecisionText(pr: PullRequest): StyledText {
@@ -261,7 +261,7 @@ export class PullRequestRenderable extends BoxRenderable {
 
       reviewDecision = t`${red(`⚑ ${pr.requestedChangeCount} ${text}`)}`;
     } else if (pr.reviewDecision === "APPROVED") {
-      reviewDecision = t`${green(`✓ ${pr.approvedCount} Approved ${pr.approvedByMe ? "(You)" : ""}`)}`;
+      reviewDecision = t`${green(`✓ ${pr.approvedCount} Approved${pr.approvedByMe ? " (You)" : ""}`)}`;
     } else if (pr.isReviewRequested) {
       reviewDecision = t`${magenta("⊙ Review requested")}`;
     }

@@ -1,6 +1,6 @@
-import { PullRequestResponse } from "./GitHubResponse";
-import { CheckStatus, PullRequest } from "./PullRequest";
-import { User } from "./User";
+import type { PullRequestResponse } from "./GitHubResponse";
+import { CheckStatus, type PullRequest } from "./PullRequest";
+import type { User } from "./User";
 
 const getCheckStatus = (pr: PullRequestResponse): CheckStatus => {
   const allChecksPassing = pr.statusCheckRollup.every(

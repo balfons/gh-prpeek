@@ -8,13 +8,16 @@ import {
   TextRenderable,
 } from "@opentui/core";
 import open from "open";
-import { TabMenuRenderable, TabOption } from "../components/TabMenuRenderable";
+import {
+  TabMenuRenderable,
+  type TabOption,
+} from "../components/TabMenuRenderable";
 import { SpinnerRenderable } from "../components/SpinnerRenderable";
 import { CommandsRenderable } from "../components/CommandsRenderable";
 import { PullRequestRenderable } from "../components/PullRequestRenderable";
-import { getHexColor } from "../utils/color.util";
+import { brightBlack, getHexColor } from "../utils/color.util";
 import packageJson from "../../package.json";
-import { PullRequest } from "../models/PullRequest";
+import type { PullRequest } from "../models/PullRequest";
 import { formattedDateText, getPrRenderables } from "../utils/output.util";
 
 interface PrCollections {
@@ -67,7 +70,7 @@ class AppView {
       width: "100%",
       overflow: "hidden",
       border: ["bottom", "right", "left"],
-      borderColor: "gray",
+      borderColor: getHexColor("brightBlack"),
       borderStyle: "rounded",
       focusable: false,
       paddingLeft: 2,
@@ -96,9 +99,9 @@ class AppView {
       position: "relative",
       left: 0,
       top: 0,
-      menuBorderColor: "#808080",
+      menuBorderColor: getHexColor("brightBlack"),
       selectedOptionTextColor: getHexColor("magenta"),
-      optionTextColor: getHexColor("white"),
+      optionTextColor: getHexColor("fgText"),
       onSelectionChanged: () => {
         this.selectedPrIndex = -1;
         this.refreshAppView(this.state);
@@ -108,7 +111,7 @@ class AppView {
 
     this.lastUpdatedSpinnerText = new SpinnerRenderable(renderer, {
       id: "last-updated-spinner-text",
-      text: t`[${green("✓")} ${dim("Updating...")}]`,
+      text: t`[${green("✓")} ${brightBlack("Updating...")}]`,
     });
 
     this.commands = new CommandsRenderable(renderer, {
@@ -150,7 +153,7 @@ class AppView {
     this.versionText = new TextRenderable(renderer, {
       id: "version-text",
       content: t`${packageJson.version}`,
-      fg: "gray",
+      fg: getHexColor("brightBlack"),
       position: "absolute",
       right: 2,
       top: 1,
@@ -202,7 +205,7 @@ class AppView {
       this.selectedPrIndex >= 0 &&
       this.selectedPrIndex < this.prRenderables.length
     ) {
-      this.prRenderables[this.selectedPrIndex].setSelected(true);
+      this.prRenderables[this.selectedPrIndex]?.setSelected(true);
     }
   };
 
@@ -248,10 +251,10 @@ class AppView {
     const prev = this.selectedPrIndex;
     this.selectedPrIndex = Math.max(0, prev - 1);
     if (prev !== this.selectedPrIndex) {
-      if (prev >= 0) this.prRenderables[prev].setSelected(false);
-      this.prRenderables[this.selectedPrIndex].setSelected(true);
+      if (prev >= 0) this.prRenderables[prev]?.setSelected(false);
+      this.prRenderables[this.selectedPrIndex]?.setSelected(true);
       this.prListContainer.scrollChildIntoView(
-        this.prRenderables[this.selectedPrIndex].id,
+        this.prRenderables[this.selectedPrIndex]!.id,
       );
     }
   }
@@ -265,11 +268,11 @@ class AppView {
     );
     if (prev !== this.selectedPrIndex) {
       if (prev >= 0 && prev < this.prRenderables.length) {
-        this.prRenderables[prev].setSelected(false);
+        this.prRenderables[prev]?.setSelected(false);
       }
-      this.prRenderables[this.selectedPrIndex].setSelected(true);
+      this.prRenderables[this.selectedPrIndex]?.setSelected(true);
       this.prListContainer.scrollChildIntoView(
-        this.prRenderables[this.selectedPrIndex].id,
+        this.prRenderables[this.selectedPrIndex]!.id,
       );
     }
   }
@@ -280,8 +283,9 @@ class AppView {
       this.selectedPrIndex >= this.prRenderables.length
     )
       return;
-    open(this.prRenderables[this.selectedPrIndex].prUrl);
+    open(this.prRenderables[this.selectedPrIndex]!.prUrl);
   }
 }
 
-export { AppView, PrCollections };
+export { AppView };
+export type { PrCollections };

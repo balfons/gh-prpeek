@@ -1,4 +1,4 @@
-import { PullRequest } from "../models/PullRequest";
+import type { PullRequest } from "../models/PullRequest";
 import { CliRenderer } from "@opentui/core";
 import { PullRequestRenderable } from "../components/PullRequestRenderable";
 

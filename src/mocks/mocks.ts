@@ -1,4 +1,4 @@
-import { CheckStatus, PullRequest } from "../models/PullRequest";
+import { CheckStatus, type PullRequest } from "../models/PullRequest";
 
 export const prMocks: PullRequest[] = [
   {
@@ -22,6 +22,9 @@ export const prMocks: PullRequest[] = [
     failingChecks: [],
     totalChecksCount: 38,
     checkStatus: CheckStatus.SUCCESSFUL,
+    approvedByMe: false,
+    pendingChecks: [],
+    successfulChecks: [],
   },
   {
     title: "Add search algorithm to find Harry P",
@@ -44,6 +47,9 @@ export const prMocks: PullRequest[] = [
     failingChecks: [],
     totalChecksCount: 38,
     checkStatus: CheckStatus.SUCCESSFUL,
+    approvedByMe: false,
+    pendingChecks: [],
+    successfulChecks: [],
   },
   {
     title: "Add check for infinity and beyond",
@@ -75,6 +81,9 @@ export const prMocks: PullRequest[] = [
     ],
     totalChecksCount: 2,
     checkStatus: CheckStatus.FAILURE,
+    approvedByMe: false,
+    pendingChecks: [],
+    successfulChecks: [],
   },
   {
     title: "Increase Katla's fire output",
@@ -97,6 +106,9 @@ export const prMocks: PullRequest[] = [
     failingChecks: [],
     totalChecksCount: 38,
     checkStatus: CheckStatus.PENDING,
+    approvedByMe: false,
+    pendingChecks: [],
+    successfulChecks: [],
   },
   {
     title: "Make test coverage 100%",
@@ -119,5 +131,8 @@ export const prMocks: PullRequest[] = [
     failingChecks: [],
     totalChecksCount: 38,
     checkStatus: CheckStatus.SUCCESSFUL,
+    approvedByMe: false,
+    pendingChecks: [],
+    successfulChecks: [],
   },
 ];

@@ -1,6 +1,6 @@
 import {
   fg,
-  TextChunk,
+  type TextChunk,
   black as openTuiBlack,
   red as openTuiRed,
   green as openTuiGreen,
@@ -40,6 +40,10 @@ type TerminalThemeColors = {
   defaultBackground: string;
 };
 
+type ExtraTerminalThemeColors = {
+  fgText: string;
+};
+
 class ColorUtility {
   private static instance: ColorUtility;
   private colors: TerminalThemeColors = {
@@ -62,6 +66,10 @@ class ColorUtility {
     defaultBackground: "",
   };
 
+  private extraColors: ExtraTerminalThemeColors = {
+    fgText: "",
+  };
+
   private constructor() {}
 
   static getInstance(): ColorUtility {
@@ -73,6 +81,9 @@ class ColorUtility {
 
   setColors(colors: Partial<TerminalThemeColors>) {
     this.colors = { ...this.colors, ...colors };
+  }
+  setExtraColors(colors: Partial<ExtraTerminalThemeColors>) {
+    this.extraColors = { ...this.extraColors, ...colors };
   }
 
   black(text: string): TextChunk {
@@ -159,16 +170,30 @@ class ColorUtility {
       : openTuiBrightWhite(text);
   }
 
-  getHexColor(colorName: keyof TerminalThemeColors): string {
-    return this.colors[colorName];
+  fgText(text: string): TextChunk {
+    return this.extraColors.fgText
+      ? fg(this.extraColors.fgText)(text)
+      : openTuiWhite(text);
+  }
+
+  getHexColor(
+    colorName: keyof TerminalThemeColors | keyof ExtraTerminalThemeColors,
+  ): string {
+    return (
+      (this.colors as any)[colorName] || (this.extraColors as any)[colorName]
+    );
   }
 }
 
 const colorUtil = ColorUtility.getInstance();
 
 // Export functions
-export const setTerminalColors = (colors: Partial<TerminalThemeColors>) => {
+export const setTerminalColors = (
+  colors: Partial<TerminalThemeColors>,
+  extraColors: Partial<ExtraTerminalThemeColors>,
+) => {
   colorUtil.setColors(colors);
+  colorUtil.setExtraColors(extraColors);
 };
 
 export const setTerminalColorsFromTheme = async (renderer: CliRenderer) => {
@@ -194,15 +219,25 @@ export const setTerminalColorsFromTheme = async (renderer: CliRenderer) => {
     defaultBackground: "",
   };
 
+  const extraColors: ExtraTerminalThemeColors = {
+    fgText: "",
+  };
+
   const colorKeys = Object.keys(terminalThemeHexColors);
 
   palette.palette.forEach((color, index) => {
-    const colorName = colorKeys[index];
-    (terminalThemeHexColors as any)[colorName] = color || "";
+    const colorName = colorKeys[index] as keyof TerminalThemeColors;
+    terminalThemeHexColors[colorName] = color || "";
   });
   terminalThemeHexColors.defaultBackground = palette.defaultBackground || "";
 
-  setTerminalColors(terminalThemeHexColors);
+  extraColors.fgText = colorIsDarkSimple(
+    terminalThemeHexColors.defaultBackground,
+  )
+    ? terminalThemeHexColors.white
+    : terminalThemeHexColors.black;
+
+  setTerminalColors(terminalThemeHexColors, extraColors);
 };
 
 export const black = (text: string) => colorUtil.black(text);
@@ -221,7 +256,10 @@ export const brightBlue = (text: string) => colorUtil.brightBlue(text);
 export const brightMagenta = (text: string) => colorUtil.brightMagenta(text);
 export const brightCyan = (text: string) => colorUtil.brightCyan(text);
 export const brightWhite = (text: string) => colorUtil.brightWhite(text);
-export const getHexColor = (colorName: keyof TerminalThemeColors): string => {
+export const fgText = (text: string) => colorUtil.fgText(text);
+export const getHexColor = (
+  colorName: keyof TerminalThemeColors | keyof ExtraTerminalThemeColors,
+): string => {
   return colorUtil.getHexColor(colorName);
 };
 

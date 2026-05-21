@@ -1,5 +1,9 @@
 import notifier from "node-notifier";
-import { CheckStatus, PullRequest, ReviewComment } from "./models/PullRequest";
+import {
+  CheckStatus,
+  type PullRequest,
+  type ReviewComment,
+} from "./models/PullRequest";
 
 const findPr = (allPrs: PullRequest[], prToFind: PullRequest) =>
   allPrs.find(

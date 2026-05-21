@@ -1,6 +1,6 @@
 import { CliRenderer, cyan, dim, StyledText, t } from "@opentui/core";
 import { fetchLatestRelease } from "../commands";
-import { green } from "../utils/color.util";
+import { getHexColor, green } from "../utils/color.util";
 import packageJson from "../../package.json";
 import { SplashScreenRenderable } from "../components/SplashScreenRenderable";
 
@@ -14,7 +14,10 @@ class SplashView {
     this.splashScreen = splashScreen;
   }
 
-  static async create(renderer: CliRenderer, { repoNames }: { repoNames: string[] }) {
+  static async create(
+    renderer: CliRenderer,
+    { repoNames }: { repoNames: string[] },
+  ) {
     const latestRelease = await fetchLatestRelease();
 
     let bodyRows: StyledText[] = [
@@ -37,6 +40,7 @@ class SplashView {
       alignItems: "center",
       justifyContent: "center",
       flexDirection: "column",
+      asciiColor: getHexColor("fgText"),
       height: "100%",
       asciiText: "prpeek",
       bodyRows,

@@ -2,11 +2,11 @@ import {
   FrameBufferRenderable,
   TabSelectRenderable,
   TabSelectRenderableEvents,
-  TabSelectOption,
+  type TabSelectOption,
   RGBA,
   CliRenderer,
   BoxRenderable,
-  BoxOptions,
+  type BoxOptions,
 } from "@opentui/core";
 import { getHexColor } from "../utils/color.util";
 
@@ -47,7 +47,7 @@ export class TabMenuRenderable extends BoxRenderable {
     });
 
     this.renderer = options.renderer;
-    this.menuBorderColor = options.menuBorderColor || "#808080";
+    this.menuBorderColor = options.menuBorderColor || getHexColor("brightBlack");
     this.selectedOptionTextColor =
       options.selectedOptionTextColor || getHexColor("magenta");
     this.optionTextColor = options.optionTextColor || getHexColor("white");
@@ -120,7 +120,7 @@ export class TabMenuRenderable extends BoxRenderable {
   /**
    * Focus the tabs
    */
-  focus(): void {
+  override focus(): void {
     this.tabs.focus();
   }
 
@@ -250,10 +250,10 @@ export class TabMenuRenderable extends BoxRenderable {
 
         // Clear the middle (open bottom)
         for (let i = 1; i < tabWidth - 1; i++) {
-          this.canvas.frameBuffer.drawText(
-            "─",
+          this.canvas.frameBuffer.setCell(
             currentX + i,
             2,
+            "-",
             backgroundColor,
             backgroundColor,
           );

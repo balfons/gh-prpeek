@@ -17,12 +17,12 @@ import {
   notifyNewCommentsPrs,
   notifyNewPrs,
 } from "./src/notify";
-import { PullRequest } from "./src/models/PullRequest";
-import { Flags } from "./src/models/Flags";
+import type { PullRequest } from "./src/models/PullRequest";
+import type { Flags } from "./src/models/Flags";
 import { setTerminalColorsFromTheme } from "./src/utils/color.util";
 import { prMocks } from "./src/mocks/mocks";
 import chalk from "chalk";
-import { User } from "./src/models/User";
+import type { User } from "./src/models/User";
 import {
   validateInterval,
   validateRepositoryFormat,
