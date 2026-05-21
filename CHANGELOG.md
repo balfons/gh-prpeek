@@ -1,4 +1,21 @@
 # Changelog
+## v5.1.4 - 2026-05-21
+
+### Added
+- Add `typecheck` script (`tsc --noEmit`) to `package.json`
+
+### Fixed
+- Fixed long PR title overflow
+- Selected tab was shoing a border that should not have been shown.
+- Dynamic foreground color for PR titles, comments count, and UI chrome — adapts to light or dark terminal background automatically
+
+### Maintenance
+- Pin all dependency versions (remove `^` range specifiers)
+- Bump `@opentui/core` from `0.1.97` to `0.2.15`
+- Upgrade TypeScript peer dependency to `6.0.3`
+- Enable `verbatimModuleSyntax` in `tsconfig.json` — all type-only imports now use `import type`
+- Enable `noUncheckedIndexedAccess` and `noImplicitOverride` in `tsconfig.json`; fix resulting type errors across the codebase
+
 ## v5.1.3 - 2026-05-06
 
 ### Added
